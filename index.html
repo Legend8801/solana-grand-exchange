@@ -6,6 +6,7 @@
 <title>Trade — Solana</title>
 <link href="https://fonts.cdnfonts.com/css/runescape-uf" rel="stylesheet">
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.0.0-beta2/dist.es5+umd/msgpack.min.js"></script>
 <style>
   @import url('https://fonts.cdnfonts.com/css/runescape-uf');
 
@@ -1153,6 +1154,7 @@
         </div>
       </div>
       <div class="chart-body" id="chartBody"></div>
+      <div style="position:absolute;bottom:2px;left:6px;font-size:9px;color:#555;z-index:10;pointer-events:none;" id="chartSource"></div>
     </div>
   </div>
 
@@ -1321,18 +1323,49 @@ const tokenSVGs = {
 
 // ===== TOKEN DATA =====
 const tokens = [
-  { name:'Solana',       ticker:'SOL',   price:82.90,     change:0,  icon:'◎', desc:'The native token of the Solana network.', tvSymbol:'SOLUSD' },
-  { name:'Jupiter',      ticker:'JUP',   price:0.154,     change:0,  icon:'♃', desc:'Leading Solana DEX aggregator.', tvSymbol:'JUPUSD' },
-  { name:'Raydium',      ticker:'RAY',   price:0.60,      change:0,  icon:'☀', desc:'Automated market maker built on Solana.', tvSymbol:'RAYUSD' },
-  { name:'Jito',         ticker:'JTO',   price:0.283,     change:0,  icon:'⚡', desc:'MEV and liquid staking on Solana.', tvSymbol:'JTOUSD' },
-  { name:'Marinade',     ticker:'MNDE',  price:0.022,     change:0,  icon:'⚓', desc:'Liquid staking solution for Solana.', tvSymbol:'MNDEUSD' },
-  { name:'Pyth Network', ticker:'PYTH',  price:0.051,     change:0,  icon:'⊛', desc:'Price oracle network for DeFi.', tvSymbol:'PYTHUSD' },
-  { name:'Bonk',         ticker:'BONK',  price:0.000006,  change:0,  icon:'🐕', desc:'The community dog coin of Solana.', tvSymbol:'BONKUSD' },
-  { name:'Dogwifhat',    ticker:'WIF',   price:0.206,     change:0,  icon:'🎩', desc:'A dog wif a hat on Solana.', tvSymbol:'WIFUSD' },
-  { name:'Tensor',       ticker:'TNSR',  price:0.048,     change:0,  icon:'▦', desc:'NFT infrastructure and marketplace.', tvSymbol:'TNSRUSD' },
-  { name:'Orca',         ticker:'ORCA',  price:0.903,     change:0,  icon:'🐋', desc:'Friendly DEX on Solana.', tvSymbol:'ORCAUSD' },
-  { name:'Render',       ticker:'RNDR',  price:1.43,      change:0,  icon:'◈', desc:'Decentralized GPU rendering network.', tvSymbol:'RNDRUSD' },
-  { name:'Helium',       ticker:'HNT',   price:1.37,      change:0,  icon:'📡', desc:'Decentralized wireless on Solana.', tvSymbol:'HNTUSD' },
+  // === Blue Chips ===
+  { name:'Solana',       ticker:'SOL',      price:82.90,     change:0, icon:'◎',  desc:'The native token of the Solana network.', tvSymbol:'SOLUSD' },
+  { name:'Jupiter',      ticker:'JUP',      price:0.154,     change:0, icon:'♃',  desc:'Leading Solana DEX aggregator.', tvSymbol:'JUPUSD' },
+  { name:'Raydium',      ticker:'RAY',      price:0.60,      change:0, icon:'☀',  desc:'Automated market maker built on Solana.', tvSymbol:'RAYUSD' },
+  { name:'Jito',         ticker:'JTO',      price:0.283,     change:0, icon:'⚡', desc:'MEV and liquid staking on Solana.', tvSymbol:'JTOUSD' },
+  { name:'Pyth Network', ticker:'PYTH',     price:0.051,     change:0, icon:'⊛',  desc:'Price oracle network for DeFi.', tvSymbol:'PYTHUSD' },
+  { name:'Render',       ticker:'RNDR',     price:1.43,      change:0, icon:'◈',  desc:'Decentralized GPU rendering network.', tvSymbol:'RNDRUSD' },
+  { name:'Helium',       ticker:'HNT',      price:1.37,      change:0, icon:'📡', desc:'Decentralized wireless on Solana.', tvSymbol:'HNTUSD' },
+  // === DeFi ===
+  { name:'Orca',         ticker:'ORCA',     price:0.903,     change:0, icon:'🐋', desc:'Friendly DEX on Solana.', tvSymbol:'ORCAUSD' },
+  { name:'Marinade',     ticker:'MNDE',     price:0.022,     change:0, icon:'⚓', desc:'Liquid staking solution for Solana.', tvSymbol:'MNDEUSD' },
+  { name:'Tensor',       ticker:'TNSR',     price:0.048,     change:0, icon:'▦',  desc:'NFT infrastructure and marketplace.', tvSymbol:'TNSRUSD' },
+  { name:'Marinade SOL', ticker:'MSOL',     price:105.0,     change:0, icon:'🧊', desc:'Marinade staked SOL.', tvSymbol:'MSOLUSD' },
+  { name:'Jito SOL',     ticker:'JITOSOL',  price:107.0,     change:0, icon:'⚡', desc:'Jito liquid staking token.', tvSymbol:'JITOSOLUSD' },
+  { name:'BlazeStake SOL',ticker:'BSOL',    price:106.0,     change:0, icon:'🔥', desc:'BlazeStake liquid staking.', tvSymbol:'BSOLUSD' },
+  { name:'Infinity',     ticker:'INF',      price:110.0,     change:0, icon:'∞',  desc:'Sanctum infinity pool LST.', tvSymbol:'INFUSD' },
+  // === Memecoins ===
+  { name:'Bonk',         ticker:'BONK',     price:0.000006,  change:0, icon:'🐕', desc:'The community dog coin of Solana.', tvSymbol:'BONKUSD' },
+  { name:'Dogwifhat',    ticker:'WIF',      price:0.206,     change:0, icon:'🎩', desc:'A dog wif a hat on Solana.', tvSymbol:'WIFUSD' },
+  { name:'Popcat',       ticker:'POPCAT',   price:0.12,      change:0, icon:'🐱', desc:'Viral cat memecoin on Solana.', tvSymbol:'POPCATUSD' },
+  { name:'cat in a dogs world', ticker:'MEW', price:0.0015,  change:0, icon:'😺', desc:'Cat vs dogs memecoin.', tvSymbol:'MEWUSD' },
+  { name:'TRUMP',        ticker:'TRUMP',    price:8.50,      change:0, icon:'🏛',  desc:'Official Trump memecoin.', tvSymbol:'TRUMPUSD' },
+  { name:'Fartcoin',     ticker:'FARTCOIN', price:0.30,      change:0, icon:'💨', desc:'AI-generated fart coin.', tvSymbol:'FARTCOINUSD' },
+  { name:'Wen',          ticker:'WEN',      price:0.00003,   change:0, icon:'📜', desc:'Jupiter LFG memecoin.', tvSymbol:'WENUSD' },
+  { name:'Samoyed',      ticker:'SAMO',     price:0.003,     change:0, icon:'🐶', desc:'Solana dog coin OG.', tvSymbol:'SAMOUSD' },
+  { name:'Myro',         ticker:'MYRO',     price:0.01,      change:0, icon:'🐕', desc:'Raj Gokal\'s dog.', tvSymbol:'MYROUSD' },
+  // === Infrastructure & Gaming ===
+  { name:'Wormhole',     ticker:'W',        price:0.09,      change:0, icon:'🌀', desc:'Cross-chain messaging protocol.', tvSymbol:'WUSD' },
+  { name:'Helium Mobile',ticker:'MOBILE',   price:0.0004,    change:0, icon:'📱', desc:'Helium 5G network token.', tvSymbol:'MOBILEUSD' },
+  { name:'Helium IoT',   ticker:'IOT',      price:0.0008,    change:0, icon:'📶', desc:'Helium IoT network token.', tvSymbol:'IOTUSD' },
+  { name:'Star Atlas',   ticker:'ATLAS',    price:0.001,     change:0, icon:'🚀', desc:'Space exploration MMORPG.', tvSymbol:'ATLASUSD' },
+  { name:'Star Atlas DAO',ticker:'POLIS',   price:0.05,      change:0, icon:'🏛',  desc:'Star Atlas governance.', tvSymbol:'POLISUSD' },
+  { name:'DUST Protocol',ticker:'DUST',     price:0.15,      change:0, icon:'✨', desc:'NFT utility token.', tvSymbol:'DUSTUSD' },
+  // === Stablecoins & Wrapped ===
+  { name:'Tether',       ticker:'USDT',     price:1.00,      change:0, icon:'💲', desc:'USD-pegged stablecoin.', tvSymbol:'USDTUSD' },
+  { name:'Wrapped BTC',  ticker:'WBTC',     price:45000,     change:0, icon:'₿',  desc:'Bitcoin on Solana.', tvSymbol:'WBTCUSD' },
+  { name:'Wrapped ETH',  ticker:'WETH',     price:2500,      change:0, icon:'⟠',  desc:'Ethereum on Solana.', tvSymbol:'WETHUSD' },
+  { name:'Coinbase BTC', ticker:'CBBTC',    price:45000,     change:0, icon:'₿',  desc:'Coinbase wrapped BTC.', tvSymbol:'CBBTCUSD' },
+  // === AI & DePIN ===
+  { name:'ai16z',        ticker:'AI16Z',    price:0.15,      change:0, icon:'🤖', desc:'AI venture DAO token.', tvSymbol:'AI16ZUSD' },
+  { name:'Griffain',     ticker:'GRIFFAIN', price:0.03,      change:0, icon:'🦅', desc:'AI agent framework.', tvSymbol:'GRIFFAINUSD' },
+  { name:'Virtual',      ticker:'VIRTUAL',  price:0.50,      change:0, icon:'🌐', desc:'Virtual protocol on Solana.', tvSymbol:'VIRTUALUSD' },
+  { name:'Zerebro',      ticker:'ZEREBRO',  price:0.02,      change:0, icon:'🧠', desc:'AI content creation agent.', tvSymbol:'ZEREBOUSD' },
 ];
 
 // Simulated position data per token (entry prices near current market)
@@ -1511,6 +1544,7 @@ function syncSlotsWithPositions() {
 }
 
 // ===== UPDATE MAIN PANEL =====
+let _lastPanelTicker = null;
 function updatePanel() {
   const t = tokens[selectedToken];
   document.getElementById('offerSideLabel').textContent = offerSide === 'buy' ? 'Buy offer' : 'Sell offer';
@@ -1524,7 +1558,11 @@ function updatePanel() {
   updateQtyButtons();
   updateTotal();
   updatePosition();
-  updateChart();
+  // Only redraw chart when the selected TOKEN actually changes (prevents click-candle bug)
+  if (t.ticker !== _lastPanelTicker) {
+    _lastPanelTicker = t.ticker;
+    updateChart();
+  }
 }
 
 function getPrice() { return parseFloat(document.getElementById('priceInput').value.replace(/[^0-9.]/g, '')) || 0; }
@@ -1575,54 +1613,168 @@ function updatePosition() {
 // ===== TRADINGVIEW CANDLESTICK CHART =====
 let tvChart = null;
 let tvSeries = null;
-let chartData = {}; // { ticker: [ {time, open, high, low, close}, ... ] }
+let tvVolSeries = null;
 
-function initChartData(ticker, currentPrice) {
-  if (!chartData[ticker]) {
-    chartData[ticker] = [];
-    let p = currentPrice * (0.92 + Math.random() * 0.08);
-    const now = Math.floor(Date.now() / 1000);
-    for (let i = 0; i < 120; i++) {
-      const vol = currentPrice < 0.001 ? 0.018 : 0.01;
-      const open = p;
-      // Simulate intra-candle movement
-      const move1 = (Math.random() - 0.48) * vol;
-      const move2 = (Math.random() - 0.48) * vol;
-      const move3 = (Math.random() - 0.48) * vol;
-      const high = open * (1 + Math.abs(move1) + Math.abs(move2) * 0.5);
-      const low = open * (1 - Math.abs(move2) - Math.abs(move3) * 0.5);
-      const close = open * (1 + move1 + move3);
-      p = close;
-      chartData[ticker].push({
-        time: now - (120 - i) * 60,
-        open: open,
-        high: Math.max(open, close, high),
-        low: Math.min(open, close, low),
-        close: close
-      });
-    }
+// ===== REAL OHLC DATA ENGINE =====
+// Fetches real candle data from Binance (primary) and CoinGecko (fallback).
+// Falls back to synthetic data only for tokens not on any exchange.
+
+// Binance symbol mapping for tokens available on Binance
+const BINANCE_SYMBOL_MAP = {
+  SOL: 'SOLUSDT', JUP: 'JUPUSDT', RAY: 'RAYUSDT', JTO: 'JTOUSDT',
+  PYTH: 'PYTHUSDT', RNDR: 'RENDERUSDT', HNT: 'HNTUSDT',
+  ORCA: 'ORCAUSDT', BONK: 'BONKUSDT', WIF: 'WIFUSDT',
+  TRUMP: 'TRUMPUSDT', POPCAT: 'POPCATUSDT', W: 'WUSDT',
+  WBTC: 'BTCUSDT', WETH: 'ETHUSDT', USDT: 'USDCUSDT',
+  MEW: 'MEWUSDT', FARTCOIN: 'FARTCOINUSDT',
+  TNSR: 'TNSRUSDT', MSOL: 'MSOLUSDT',
+};
+
+// Timeframe mapping for Binance API
+const BINANCE_TF_MAP = { '15': '15m', '60': '1h', '240': '4h', 'D': '1d' };
+// CoinGecko OHLC days mapping per timeframe
+const CG_DAYS_MAP = { '15': 1, '60': 7, '240': 30, 'D': 90 };
+
+// Cache: { "SOL_60": { candles: [...], fetchedAt: timestamp } }
+const ohlcCache = {};
+const OHLC_CACHE_TTL = 60000; // 1 minute cache
+
+// Fetch OHLC candles from Binance klines API (free, no auth)
+async function fetchBinanceOHLC(ticker, tf) {
+  const symbol = BINANCE_SYMBOL_MAP[ticker];
+  if (!symbol) return null;
+  const interval = BINANCE_TF_MAP[tf] || '1h';
+  const limit = 300;
+  try {
+    // data-api.binance.vision is Binance's CORS-friendly CDN (api.binance.com is geo-blocked in some regions)
+    const url = `https://data-api.binance.vision/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    // Binance format: [openTime, open, high, low, close, volume, closeTime, ...]
+    return data.map(k => ({
+      time: Math.floor(k[0] / 1000), // ms → seconds
+      open: parseFloat(k[1]),
+      high: parseFloat(k[2]),
+      low: parseFloat(k[3]),
+      close: parseFloat(k[4]),
+      volume: parseFloat(k[5]),
+    }));
+  } catch(e) {
+    console.warn('[Chart] Binance OHLC fetch failed for', ticker, e.message);
+    return null;
   }
 }
 
-function addChartPoint(ticker, price) {
-  if (!chartData[ticker]) initChartData(ticker, price);
-  const arr = chartData[ticker];
-  const last = arr[arr.length - 1];
-  const now = last ? last.time + 60 : Math.floor(Date.now() / 1000);
-  // Build a candle from last close to new price with some wick noise
-  const open = last ? last.close : price;
-  const vol = price < 0.001 ? 0.012 : 0.006;
-  const wickUp = price * (1 + Math.random() * vol);
-  const wickDn = price * (1 - Math.random() * vol);
-  arr.push({
-    time: now,
-    open: open,
-    high: Math.max(open, price, wickUp),
-    low: Math.min(open, price, wickDn),
-    close: price
-  });
-  if (arr.length > 300) arr.shift();
+// Fetch OHLC from CoinGecko (fallback for tokens not on Binance)
+async function fetchCoinGeckoOHLC(ticker, tf) {
+  const cgId = COINGECKO_ID_MAP[ticker];
+  if (!cgId) return null;
+  const days = CG_DAYS_MAP[tf] || 7;
+  try {
+    const url = `https://api.coingecko.com/api/v3/coins/${cgId}/ohlc?vs_currency=usd&days=${days}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    // CoinGecko format: [[timestamp_ms, open, high, low, close], ...]
+    return data.map(k => ({
+      time: Math.floor(k[0] / 1000),
+      open: k[1],
+      high: k[2],
+      low: k[3],
+      close: k[4],
+    }));
+  } catch(e) {
+    console.warn('[Chart] CoinGecko OHLC fetch failed for', ticker, e.message);
+    return null;
+  }
 }
+
+// Generate synthetic candles as last resort
+function generateSyntheticCandles(ticker, tf, currentPrice) {
+  const tfSec = ({ '15': 15*60, '60': 60*60, '240': 4*60*60, 'D': 24*60*60 })[tf] || 3600;
+  const numCandles = 200;
+  const now = Math.floor(Date.now() / 1000);
+  const alignedNow = Math.floor(now / tfSec) * tfSec;
+  let seed = 0;
+  for (let i = 0; i < ticker.length; i++) seed += ticker.charCodeAt(i);
+  function sr() { seed = (seed * 16807 + 0) % 2147483647; return (seed & 0x7fffffff) / 2147483647; }
+
+  const vol = currentPrice < 0.001 ? 0.012 : currentPrice < 0.1 ? 0.008 : 0.005;
+  let p = currentPrice * (0.85 + sr() * 0.15);
+  const candles = [];
+  for (let i = 0; i < numCandles; i++) {
+    const t = alignedNow - (numCandles - i) * tfSec;
+    const drift = (sr() - 0.47) * vol;
+    const noise = (sr() - 0.5) * vol * 1.8;
+    const spike = sr() < 0.02 ? (sr() - 0.4) * vol * 5 : 0;
+    p *= (1 + drift + noise + spike);
+    if (p <= 0) p = currentPrice * 0.5;
+    const spread = p * vol * (0.3 + sr() * 0.7);
+    const o = p;
+    const c = p * (1 + (sr() - 0.5) * vol * 0.8);
+    const h = Math.max(o, c) + spread * sr();
+    const l = Math.min(o, c) - spread * sr();
+    candles.push({ time: t, open: o, high: h, low: Math.max(l, 0.000000001), close: c });
+  }
+  // Rescale last candle's close to match current price
+  const ratio = currentPrice / candles[candles.length - 1].close;
+  candles.forEach(cd => { cd.open *= ratio; cd.high *= ratio; cd.low *= ratio; cd.close *= ratio; });
+  return candles;
+}
+
+// Master fetch function with caching + waterfall: Binance → CoinGecko → Synthetic
+async function fetchOHLCData(ticker, tf) {
+  const cacheKey = `${ticker}_${tf}`;
+  const cached = ohlcCache[cacheKey];
+  if (cached && (Date.now() - cached.fetchedAt < OHLC_CACHE_TTL)) {
+    return { candles: cached.candles, source: cached.source };
+  }
+
+  // Try Binance first
+  let candles = await fetchBinanceOHLC(ticker, tf);
+  let source = 'binance';
+  if (candles && candles.length > 10) {
+    console.log(`[Chart] ${ticker}/${tf}: ${candles.length} candles from Binance`);
+    ohlcCache[cacheKey] = { candles, source, fetchedAt: Date.now() };
+    return { candles, source };
+  }
+
+  // Fallback: CoinGecko OHLC
+  candles = await fetchCoinGeckoOHLC(ticker, tf);
+  source = 'coingecko';
+  if (candles && candles.length > 5) {
+    console.log(`[Chart] ${ticker}/${tf}: ${candles.length} candles from CoinGecko`);
+    ohlcCache[cacheKey] = { candles, source, fetchedAt: Date.now() };
+    return { candles, source };
+  }
+
+  // Last resort: synthetic
+  const t = tokens.find(tk => tk.ticker === ticker);
+  const price = t ? t.price : 1;
+  candles = generateSyntheticCandles(ticker, tf, price);
+  source = 'synthetic';
+  console.log(`[Chart] ${ticker}/${tf}: ${candles.length} synthetic candles (no exchange data)`);
+  ohlcCache[cacheKey] = { candles, source, fetchedAt: Date.now() };
+  return { candles, source };
+}
+
+// Live tick overlay — update the last candle's close with latest price
+function updateLastCandle(ticker, price) {
+  const cacheKey = `${ticker}_${currentTF}`;
+  const cached = ohlcCache[cacheKey];
+  if (!cached || !cached.candles || cached.candles.length === 0) return;
+  const last = cached.candles[cached.candles.length - 1];
+  last.close = price;
+  last.high = Math.max(last.high, price);
+  last.low = Math.min(last.low, price);
+}
+
+// Legacy compat stubs (referenced by refreshPriceUI / intervals)
+const tickHistory = {};
+function ensureTickHistory() {}
+function addChartPoint(ticker, price) { updateLastCandle(ticker, price); }
+function buildCandles() { return []; }
 
 function initTVChart() {
   const container = document.getElementById('chartBody');
@@ -1632,7 +1784,7 @@ function initTVChart() {
     width: container.clientWidth, height: container.clientHeight,
     layout: { background: { color: '#131722' }, textColor: '#9f9483', fontFamily: 'monospace', fontSize: 10 },
     grid: { vertLines: { color: 'rgba(255,152,31,0.04)' }, horzLines: { color: 'rgba(255,152,31,0.04)' } },
-    rightPriceScale: { borderColor: 'rgba(255,152,31,0.15)', scaleMargins: { top: 0.1, bottom: 0.05 } },
+    rightPriceScale: { borderColor: 'rgba(255,152,31,0.15)', scaleMargins: { top: 0.1, bottom: 0.2 } },
     timeScale: { borderColor: 'rgba(255,152,31,0.15)', timeVisible: true, secondsVisible: false },
     crosshair: { mode: 0, vertLine: { color: 'rgba(255,152,31,0.3)', labelBackgroundColor: '#ff981f' }, horzLine: { color: 'rgba(255,152,31,0.3)', labelBackgroundColor: '#ff981f' } },
     handleScroll: { mouseWheel: true, pressedMouseMove: true }, handleScale: { mouseWheel: true, pinch: true },
@@ -1646,30 +1798,86 @@ function initTVChart() {
     wickDownColor: '#ff4444',
     priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
   });
+  tvVolSeries = tvChart.addHistogramSeries({
+    priceFormat: { type: 'volume' },
+    priceScaleId: 'vol',
+    color: 'rgba(255,152,31,0.15)',
+  });
+  tvChart.priceScale('vol').applyOptions({
+    scaleMargins: { top: 0.85, bottom: 0 },
+  });
   new ResizeObserver(() => {
     if (tvChart) tvChart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
   }).observe(container);
 }
 
-function drawChart(ticker) {
+let chartLastTicker = null;
+let chartLastTF = null;
+let chartLastCandleCount = 0;
+let chartIsLoading = false;
+let chartDataSource = ''; // 'binance', 'coingecko', 'synthetic'
+
+async function drawChart(ticker) {
   const t = tokens.find(tk => tk.ticker === ticker) || tokens[selectedToken];
-  initChartData(ticker, t.price);
   if (!tvChart) initTVChart();
   if (!tvSeries) return;
-  const data = chartData[ticker];
-  if (!data || data.length < 2) return;
-  // Update precision for small-decimal tokens
-  const prec = t.price < 0.0001 ? 8 : t.price < 0.01 ? 5 : t.price < 1 ? 4 : 2;
-  const mv = t.price < 0.0001 ? 0.00000001 : t.price < 0.01 ? 0.00001 : t.price < 1 ? 0.0001 : 0.01;
-  tvSeries.applyOptions({ priceFormat: { type: 'price', precision: prec, minMove: mv } });
-  tvSeries.setData(data);
-  tvChart.timeScale().fitContent();
+
+  const needFetch = (ticker !== chartLastTicker || currentTF !== chartLastTF);
+
+  if (needFetch && !chartIsLoading) {
+    chartIsLoading = true;
+    try {
+      const { candles, source } = await fetchOHLCData(ticker, currentTF);
+      chartDataSource = source;
+      if (!candles || candles.length < 2) { chartIsLoading = false; return; }
+
+      // Update precision for small-decimal tokens
+      const price = candles[candles.length - 1].close;
+      const prec = price < 0.0001 ? 8 : price < 0.01 ? 6 : price < 1 ? 4 : 2;
+      const mv = price < 0.0001 ? 0.00000001 : price < 0.01 ? 0.000001 : price < 1 ? 0.0001 : 0.01;
+      tvSeries.applyOptions({ priceFormat: { type: 'price', precision: prec, minMove: mv } });
+
+      tvSeries.setData(candles);
+
+      // Volume bars (Binance provides volume)
+      if (candles[0].volume !== undefined) {
+        const volData = candles.map(c => ({
+          time: c.time,
+          value: c.volume || 0,
+          color: c.close >= c.open ? 'rgba(0,255,136,0.15)' : 'rgba(255,68,68,0.15)',
+        }));
+        tvVolSeries.setData(volData);
+      } else {
+        tvVolSeries.setData([]);
+      }
+
+      tvChart.timeScale().fitContent();
+      chartLastTicker = ticker;
+      chartLastTF = currentTF;
+      chartLastCandleCount = candles.length;
+
+      // Update chart source indicator
+      const srcLabel = source === 'binance' ? '🟢 Binance' : source === 'coingecko' ? '🟡 CoinGecko' : '⚪ Simulated';
+      const srcEl = document.getElementById('chartSource');
+      if (srcEl) srcEl.textContent = srcLabel;
+    } catch(e) {
+      console.warn('[Chart] drawChart error:', e);
+    }
+    chartIsLoading = false;
+  } else if (!needFetch) {
+    // Just update latest candle in-place with live price
+    const cacheKey = `${ticker}_${currentTF}`;
+    const cached = ohlcCache[cacheKey];
+    if (cached && cached.candles && cached.candles.length > 0) {
+      const last = cached.candles[cached.candles.length - 1];
+      tvSeries.update(last);
+    }
+  }
 }
 
 function updateChart() {
   const t = tokens[selectedToken];
   document.getElementById('chartTitle').textContent = t.ticker + '/USD';
-  addChartPoint(t.ticker, t.price);
   drawChart(t.ticker);
 }
 
@@ -1679,6 +1887,8 @@ function setTimeframe(tf) {
   currentTF = tf;
   document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
   document.querySelector(`.chart-tab[data-tf="${tf}"]`).classList.add('active');
+  // Force cache invalidation so we fetch fresh data for new TF
+  chartLastTF = null;
   updateChart();
 }
 document.querySelectorAll('.chart-tab').forEach(tab => {
@@ -2426,20 +2636,62 @@ function renderLeaderboardWithLevels() {
 // ===== TITAN EXCHANGE SWAP API INTEGRATION =====
 // Solana token mint addresses
 const TOKEN_MINTS = {
-  SOL:  'So11111111111111111111111111111111111111112',
-  JUP:  'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',
-  RAY:  '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',
-  JTO:  'jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL',
-  MNDE: 'MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey',
-  PYTH: 'HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3',
-  BONK: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
-  WIF:  'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
-  TNSR: 'TNSRxcUz1RcC4YrJnCvETr29bGA8BG7HXfCiTyK7Fg8',
-  ORCA: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',
-  RNDR: 'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof',
-  HNT:  'hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux',
+  // === Blue Chips ===
+  SOL:    'So11111111111111111111111111111111111111112',
+  JUP:    'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',
+  RAY:    '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',
+  JTO:    'jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL',
+  PYTH:   'HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3',
+  RNDR:   'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof',
+  HNT:    'hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux',
+  // === DeFi ===
+  ORCA:   'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',
+  MNDE:   'MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey',
+  TNSR:   'TNSRxcUz1RcC4YrJnCvETr29bGA8BG7HXfCiTyK7Fg8',
+  MSOL:   'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So',
+  JITOSOL:'J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn',
+  BSOL:   'bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1',
+  INF:    '5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm',
+  // === Memecoins ===
+  BONK:   'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+  WIF:    'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
+  POPCAT: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr',
+  MEW:    'MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5',
+  TRUMP:  '6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN',
+  FARTCOIN:'9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump',
+  WEN:    'WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk',
+  SAMO:   '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+  MYRO:   'HhJpBhRRn4g56VsyLuT8DL5Bv31HkXqsrahTTUCZeZg4',
+  // === Infrastructure & Gaming ===
+  W:      '85VBFQZC9TZkfaptBWjvUw7YbZjy52A6mjtPGjstQAmQ',
+  MOBILE: 'mb1eu7TzEc71KxDpsmsKoucSSuuoGLv1drys1oP2jh6',
+  IOT:    'iotEVVZLEywoTn1QdwNPddxPWszn3zFhEot3MfL9fns',
+  ATLAS:  'ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx',
+  POLIS:  'poLisWXnNRwC6oBu1vHiuKQzFjGL4XDSu4g9qjz9qVk',
+  DUST:   'DUSTawucrTsGU8hcqRdHDCbuYhCPADMLM2VcCb8VnFnQ',
+  // === Stablecoins & Wrapped ===
+  USDT:   'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+  WBTC:   '3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh',
+  WETH:   '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs',
+  CBBTC:  '6wQBMwPeKgQahHiRaEyYWbUPdraYFGLMKn1kzDPJao8C',
+  // === AI & DePIN ===
+  AI16Z:  'HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC',
+  GRIFFAIN:'GrFaLYHQ3tSFhMHGE3w65Co9pJAUniZtNiACdz81enai',
+  VIRTUAL:'virtiMZwibRiQFB3QudCJddsTpzwAUJMsJaN8Fav2qLk',
+  ZEREBRO:'ZEREBroFhjdvJbRQD72ByAHYhaxcbgQY6AoVTCyEqiV',
 };
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+
+// Decimals for all supported tokens (used in price calculations)
+const TOKEN_DECIMALS_MAP = {
+  SOL: 9, JUP: 6, RAY: 6, JTO: 9, PYTH: 6, RNDR: 8, HNT: 8,
+  ORCA: 6, MNDE: 9, TNSR: 9, MSOL: 9, JITOSOL: 9, BSOL: 9, INF: 9,
+  BONK: 5, WIF: 6, POPCAT: 9, MEW: 5, TRUMP: 6, FARTCOIN: 6,
+  WEN: 5, SAMO: 9, MYRO: 9,
+  W: 6, MOBILE: 6, IOT: 6, ATLAS: 8, POLIS: 8, DUST: 9,
+  USDT: 6, WBTC: 8, WETH: 8, CBBTC: 8,
+  AI16Z: 9, GRIFFAIN: 6, VIRTUAL: 9, ZEREBRO: 9,
+};
 
 // Titan WebSocket state
 let titanWs = null;
@@ -2455,34 +2707,88 @@ let titanReconnectTimer = null;
 
 function getTitanEndpoint() {
   if (titanEnv === 'production' || titanEnv === 'live') {
-    // JWT aud=api.titan.ag — try direct Titan Partners endpoint first
-    // Fallback chain: api.titan.ag → partners.api.titan.exchange → rpcpool
+    // Titan WebSocket endpoints — public API first, partners as fallback
     const regionalMap = {
-      us1: 'us.api.titan.ag',
-      jp1: 'jp.api.titan.ag',
-      de1: 'de.api.titan.ag',
-      global: 'api.titan.ag',
+      us1:    'wss://us.partners.api.titan.exchange/api/v1/ws',
+      jp1:    'wss://jp.partners.api.titan.exchange/api/v1/ws',
+      de1:    'wss://de.partners.api.titan.exchange/api/v1/ws',
+      global: 'wss://api.titan.exchange/api/v1/ws',
     };
-    return regionalMap[titanRegion] || 'api.titan.ag';
+    return regionalMap[titanRegion] || 'wss://api.titan.exchange/api/v1/ws';
   }
-  return `${titanRegion}.api.demo.titan.exchange`;
+  return `wss://${titanRegion}.api.demo.titan.exchange/api/v1/ws`;
 }
 
 // Track which Titan endpoint variant we're trying
 let titanEndpointIdx = 0;
-const titanEndpointVariants = [
-  () => `wss://api.titan.ag/ws`,
-  () => `wss://api.titan.ag/api/v1/ws`,
-  () => `wss://api.titan.ag/ws?token=${titanToken}`,
-  () => `wss://partners.api.titan.exchange/api/v1/ws`,
-  () => `wss://partners.api.titan.exchange/ws`,
+const TITAN_ENDPOINT_VARIANTS = [
+  () => 'wss://api.titan.exchange/api/v1/ws',           // Public API (confirmed working)
+  () => 'wss://partners.api.titan.exchange/api/v1/ws',  // Partners global
+  () => 'wss://us.partners.api.titan.exchange/api/v1/ws', // Partners US
+];
+
+// Titan sub-protocols for WebSocket handshake (per Titan Playground-api reference)
+// Browser doesn't support zstd/brotli natively, so use no-compression variant
+const TITAN_SUBPROTOCOLS = [
+  'v1.api.titan.ag',          // No compression (simplest for browser)
 ];
 
 function getTitanWsUrl() {
-  // If user provided a full Triton endpoint, use it directly (no cycling)
+  // If user provided a full Triton endpoint, use it directly
   if (titanCustomEndpoint) return titanCustomEndpoint;
-  const variant = titanEndpointVariants[titanEndpointIdx % titanEndpointVariants.length];
-  return variant();
+  // Use endpoint variant cycling for resilience
+  const variant = TITAN_ENDPOINT_VARIANTS[titanEndpointIdx % TITAN_ENDPOINT_VARIANTS.length];
+  return variant ? variant() : getTitanEndpoint();
+}
+
+// Base58 decoder for Solana addresses → 32-byte Uint8Array
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function base58Encode(bytes) {
+  if (!bytes || bytes.length === 0) return '';
+  // Count leading zeros
+  let zeroes = 0;
+  while (zeroes < bytes.length && bytes[zeroes] === 0) zeroes++;
+  const size = ((bytes.length - zeroes) * 138 / 100 + 1) >>> 0;
+  const b58 = new Uint8Array(size);
+  let length = 0;
+  for (let i = zeroes; i < bytes.length; i++) {
+    let carry = bytes[i];
+    let j = 0;
+    for (let it = size - 1; (carry !== 0 || j < length) && it >= 0; it--, j++) {
+      carry += 256 * b58[it];
+      b58[it] = carry % 58;
+      carry = (carry / 58) >>> 0;
+    }
+    length = j;
+  }
+  let it = size - length;
+  while (it < size && b58[it] === 0) it++;
+  let result = '1'.repeat(zeroes);
+  for (; it < size; it++) result += BASE58_ALPHABET[b58[it]];
+  return result;
+}
+
+function base58Decode(str) {
+  const bytes = [];
+  for (let i = 0; i < str.length; i++) {
+    const c = BASE58_ALPHABET.indexOf(str[i]);
+    if (c < 0) throw new Error('Invalid base58 char: ' + str[i]);
+    let carry = c;
+    for (let j = 0; j < bytes.length; j++) {
+      carry += bytes[j] * 58;
+      bytes[j] = carry & 0xff;
+      carry >>= 8;
+    }
+    while (carry > 0) {
+      bytes.push(carry & 0xff);
+      carry >>= 8;
+    }
+  }
+  // Handle leading '1's (zeros in base58)
+  for (let i = 0; i < str.length && str[i] === '1'; i++) {
+    bytes.push(0);
+  }
+  return new Uint8Array(bytes.reverse());
 }
 
 function updateTitanStatus(status, text) {
@@ -2541,18 +2847,28 @@ function connectTitan() {
     titanWs.close();
   }
 
-  if (!titanToken) {
-    updateTitanStatus('disconnected', 'No token');
-    return;
-  }
+  // Public endpoint (api.titan.exchange) works without a token for GetInfo
+  // Only require token for partners endpoints
 
   updateTitanStatus('connecting', 'Connecting...');
 
-  const wsUrl = getTitanWsUrl();
-  console.log('[Titan] Connecting to', wsUrl);
+  const wsBaseUrl = getTitanWsUrl();
+  if (!wsBaseUrl) {
+    console.warn('[Titan] No endpoint configured. Provide ?titanEndpoint= URL param.');
+    updateTitanStatus('disconnected', 'No endpoint');
+    return;
+  }
+
+  // Append JWT as query parameter for authentication if using partners endpoint
+  // Public endpoint (api.titan.exchange) works without auth for GetInfo
+  const isPublicEndpoint = wsBaseUrl.includes('api.titan.exchange') && !wsBaseUrl.includes('partners.');
+  const wsUrl = (!isPublicEndpoint && titanToken) ? `${wsBaseUrl}?auth=${encodeURIComponent(titanToken)}` : wsBaseUrl;
+  console.log('[Titan] Connecting to', wsBaseUrl, '(auth:', !isPublicEndpoint && titanToken ? 'yes' : 'no', ') sub-protocols:', TITAN_SUBPROTOCOLS);
 
   try {
-    titanWs = new WebSocket(wsUrl);
+    // Sub-protocol negotiation per Titan Playground-api spec
+    titanWs = new WebSocket(wsUrl, TITAN_SUBPROTOCOLS);
+    titanWs.binaryType = 'arraybuffer'; // MessagePack requires binary
   } catch (e) {
     console.error('[Titan] WebSocket creation failed:', e);
     updateTitanStatus('disconnected', 'Failed');
@@ -2560,18 +2876,22 @@ function connectTitan() {
   }
 
   titanWs.onopen = () => {
-    console.log('[Titan] WebSocket connected');
+    const proto = titanWs.protocol || 'none';
+    console.log('[Titan] WebSocket connected! Negotiated sub-protocol:', proto);
     titanConnected = true;
+    titanEndpointIdx = 0; // Reset retry counter on successful connection
     updateTitanStatus('connected', titanEnv === 'production' ? 'LIVE' : 'Demo');
 
-    // Send auth message
-    const authMsg = {
-      jsonrpc: '2.0',
-      method: 'auth',
-      params: { token: titanToken },
-      id: ++titanQuoteId
-    };
-    titanWs.send(JSON.stringify(authMsg));
+    // Send GetInfo first to validate connection (proper Titan handshake)
+    try {
+      if (typeof MessagePack !== 'undefined' && MessagePack.encode) {
+        const infoMsg = { id: ++titanQuoteId, data: { GetInfo: {} } };
+        titanWs.send(MessagePack.encode(infoMsg));
+        console.log('[Titan] Sent GetInfo handshake');
+      }
+    } catch(e) {
+      console.warn('[Titan] GetInfo send failed:', e);
+    }
 
     // Start streaming quotes for currently selected token
     startTitanQuoteStream();
@@ -2582,10 +2902,22 @@ function connectTitan() {
 
   titanWs.onmessage = (event) => {
     try {
-      const data = JSON.parse(event.data);
+      let data;
+      if (event.data instanceof ArrayBuffer) {
+        // MessagePack binary response
+        data = MessagePack.decode(new Uint8Array(event.data));
+        console.log('[Titan] MsgPack response:', JSON.stringify(data).substring(0, 200));
+      } else if (typeof event.data === 'string') {
+        // Fallback: some endpoints may still send JSON text
+        data = JSON.parse(event.data);
+        console.log('[Titan] JSON response:', JSON.stringify(data).substring(0, 200));
+      } else {
+        console.warn('[Titan] Unknown message type:', typeof event.data);
+        return;
+      }
       handleTitanMessage(data);
     } catch (e) {
-      console.error('[Titan] Parse error:', e);
+      console.error('[Titan] Message decode error:', e);
     }
   };
 
@@ -2599,43 +2931,25 @@ function connectTitan() {
     titanConnected = false;
     updateTitanStatus('disconnected', 'Disconnected');
 
-    // Auto-reconnect logic
-    if (titanToken && !titanReconnectTimer) {
-      if (titanCustomEndpoint) {
-        // Custom Triton endpoint: retry same endpoint up to 3 times, then give up
-        titanEndpointIdx++;
-        if (titanEndpointIdx >= 3) {
-          console.warn('[Titan] Triton endpoint failed 3 times. Running on CoinGecko/simulation.');
-          titanEndpointIdx = 0;
-          return;
-        }
-        titanReconnectTimer = setTimeout(() => {
-          titanReconnectTimer = null;
-          console.log(`[Titan] Retrying Triton endpoint (attempt ${titanEndpointIdx + 1}/3)...`);
-          connectTitan();
-        }, 5000);
-      } else {
-        // No custom endpoint: cycle through variant URLs
-        titanEndpointIdx++;
-        if (titanEndpointIdx >= titanEndpointVariants.length * 2) {
-          console.warn('[Titan] All endpoint variants exhausted. Running on CoinGecko/simulation.');
-          titanEndpointIdx = 0;
-          return;
-        }
-        titanReconnectTimer = setTimeout(() => {
-          titanReconnectTimer = null;
-          if (titanToken) {
-            console.log(`[Titan] Trying endpoint variant ${titanEndpointIdx % titanEndpointVariants.length + 1}/${titanEndpointVariants.length}...`);
-            connectTitan();
-          }
-        }, 5000);
+    // Auto-reconnect logic with endpoint cycling (capped at 1 full cycle)
+    if (!titanReconnectTimer) {
+      titanEndpointIdx++;
+      if (titanEndpointIdx >= TITAN_ENDPOINT_VARIANTS.length) {
+        console.warn('[Titan] All endpoints tried. Running on Jupiter/CoinGecko feeds.');
+        titanEndpointIdx = 0;
+        // Don't retry again — REST feeds are the reliable path
+        return;
       }
+      titanReconnectTimer = setTimeout(() => {
+        titanReconnectTimer = null;
+        console.log(`[Titan] Retrying endpoint ${titanEndpointIdx + 1}/${TITAN_ENDPOINT_VARIANTS.length}...`);
+        connectTitan();
+      }, 8000);
     }
   };
 }
 
 function disconnectTitan() {
-  titanToken = '';
   titanConnected = false;
   if (titanReconnectTimer) {
     clearTimeout(titanReconnectTimer);
@@ -2657,108 +2971,202 @@ function disconnectTitan() {
 }
 
 function handleTitanMessage(data) {
-  // Handle auth response
-  if (data.id && data.result && data.result.authenticated) {
-    console.log('[Titan] Authenticated successfully');
+  // Titan native protocol envelope (per Playground-api reference):
+  //   Response:   { Response: { requestId: N, data: { "MethodName": result }, stream?: {...} } }
+  //   Error:      { Error: { requestId: N, message: string } }
+  //   StreamData: { StreamData: { id: N, seq: N, payload: { "SwapQuotes": {...} } } }
+  //   StreamEnd:  { StreamEnd: { id: N, errorCode?: N, errorMessage?: string } }
+
+  if (!data) return;
+
+  // === Handle protocol-level Response ===
+  if (data.Response) {
+    const resp = data.Response;
+    const methodName = resp.data ? Object.keys(resp.data)[0] : null;
+    const result = methodName ? resp.data[methodName] : null;
+    console.log('[Titan] Response method:', methodName, 'requestId:', resp.requestId);
+
+    // If it's a NewSwapQuoteStream response, log stream info
+    if (resp.stream) {
+      console.log('[Titan] Stream started, id:', resp.stream.id, 'dataType:', resp.stream.dataType);
+    }
+
+    // GetInfo response — log server version & store settings
+    if (methodName === 'GetInfo' && result) {
+      const pv = result.protocolVersion;
+      if (pv) console.log(`[Titan] Server protocol v${pv.major}.${pv.minor}.${pv.patch}`);
+      if (result.settings) {
+        window.titanServerSettings = result.settings;
+        const qu = result.settings.quoteUpdate;
+        if (qu) console.log(`[Titan] Quote settings: intervalMs min=${qu.intervalMs?.min} max=${qu.intervalMs?.max} default=${qu.intervalMs?.default}, numQuotes min=${qu.numQuotes?.min} max=${qu.numQuotes?.max}`);
+        const sw = result.settings.swap;
+        if (sw) console.log(`[Titan] Swap settings: slippageBps min=${sw.slippageBps?.min} max=${sw.slippageBps?.max} default=${sw.slippageBps?.default}`);
+        const conn = result.settings.connection;
+        if (conn) console.log(`[Titan] Connection settings: concurrentStreams=${conn.concurrentStreams}`);
+      }
+    }
     return;
   }
 
-  // Handle quote streaming response (used for both trade quotes and price sweep)
-  if (data.result && (data.result.outAmount || data.result.outputAmount)) {
-    const outAmount = data.result.outAmount || data.result.outputAmount;
-    const inAmount = data.result.inAmount || data.result.inputAmount;
-    const inputMint = data.result.inputMint;
-    const outputMint = data.result.outputMint;
-
-    // Determine which token this quote prices
-    let quoteTicker = null;
-    const mintToTicker = {};
-    Object.entries(TOKEN_MINTS).forEach(([tk, m]) => { mintToTicker[m] = tk; });
-
-    // If input is a token and output is USDC → pricing that token
-    if (mintToTicker[inputMint] && outputMint === USDC_MINT) {
-      quoteTicker = mintToTicker[inputMint];
-    } else if (mintToTicker[outputMint] && inputMint === USDC_MINT) {
-      quoteTicker = mintToTicker[outputMint];
-    }
-
-    // Calculate effective price in USDC per 1 token
-    let effectivePrice = 0;
-    if (quoteTicker) {
-      const tokenDecimals = quoteTicker === 'SOL' ? 9 : (quoteTicker === 'BONK' ? 5 : 6);
-
-      if (outputMint === USDC_MINT) {
-        // Token → USDC: price = outUSDC / inTokens
-        const usdcAmt = parseFloat(outAmount) / 1e6;
-        const tokenAmt = parseFloat(inAmount) / Math.pow(10, tokenDecimals);
-        effectivePrice = tokenAmt > 0 ? usdcAmt / tokenAmt : 0;
-      } else {
-        // USDC → Token: price = inUSDC / outTokens
-        const usdcAmt = parseFloat(inAmount) / 1e6;
-        const tokenAmt = parseFloat(outAmount) / Math.pow(10, tokenDecimals);
-        effectivePrice = tokenAmt > 0 ? usdcAmt / tokenAmt : 0;
-      }
-    }
-
-    // Update token price if valid
-    if (quoteTicker && !isNaN(effectivePrice) && effectivePrice > 0) {
-      const tokenIdx = tokens.findIndex(t => t.ticker === quoteTicker);
-      if (tokenIdx !== -1) {
-        if (!lastPrices[quoteTicker]) lastPrices[quoteTicker] = tokens[tokenIdx].price;
-        const sessionChange = ((effectivePrice - lastPrices[quoteTicker]) / lastPrices[quoteTicker]) * 100;
-        tokens[tokenIdx].price = effectivePrice;
-        tokens[tokenIdx].change = sessionChange;
-        console.log(`[Titan] ${quoteTicker} = $${effectivePrice.toFixed(6)}`);
-
-        // If this is the currently selected token, update UI immediately
-        if (tokenIdx === selectedToken) {
-          const priceEl = document.getElementById('coinPrice');
-          if (priceEl) priceEl.textContent = fmtPrice(effectivePrice);
-          updatePosition();
-          updateTotal();
-        }
-
-        // Trigger UI refresh after each price update
-        priceSource = 'titan';
-        refreshPriceUI();
-      }
-    }
-
-    // Store last quote for swap execution (only for active trade quotes)
-    titanLastQuote = data.result;
-
-    // Update quote info panel for selected token
-    const t = tokens[selectedToken];
-    if (quoteTicker === t.ticker && effectivePrice > 0) {
-      const quoteInfo = document.getElementById('titanQuoteInfo');
-      if (quoteInfo) {
-        quoteInfo.style.display = 'block';
-        quoteInfo.innerHTML = `⚡ ${fmtPrice(effectivePrice)} USDC | ${data.result.routePlan ? data.result.routePlan.length + ' hops' : 'direct'}`;
-      }
-
-      // Show providers if available
-      if (data.result.providers || data.result.routePlan) {
-        const provDiv = document.getElementById('titanProviders');
-        if (provDiv) {
-          provDiv.style.display = 'block';
-          const routes = data.result.routePlan || [];
-          provDiv.innerHTML = routes.slice(0, 3).map((r, i) => {
-            const label = r.swapInfo?.label || r.label || `Route ${i+1}`;
-            const pct = r.percent ? `${r.percent}%` : '';
-            return `<div class="titan-provider-row"><span class="titan-provider-name">${label}</span><span class="titan-provider-price">${pct}</span>${i===0?'<span class="titan-provider-best">BEST</span>':''}</div>`;
-          }).join('');
-        }
-      }
-    }
-  }
-
-  // Handle error
-  if (data.error) {
-    console.error('[Titan] API Error:', data.error);
+  // === Handle protocol-level Error ===
+  if (data.Error) {
+    console.error('[Titan] API Error:', data.Error.message || data.Error);
     const quoteInfo = document.getElementById('titanQuoteInfo');
     if (quoteInfo) {
       quoteInfo.style.display = 'block';
-      quoteInfo.innerHTML = `<span style="color:var(--text-red);">Error: ${data.error.message || 'Unknown'}</span>`;
+      quoteInfo.innerHTML = `<span style="color:var(--text-red);">Error: ${data.Error.message || 'Unknown'}</span>`;
+    }
+    return;
+  }
+
+  // === Handle StreamEnd ===
+  if (data.StreamEnd) {
+    console.log('[Titan] Stream ended, id:', data.StreamEnd.id,
+      data.StreamEnd.errorMessage ? 'error: ' + data.StreamEnd.errorMessage : '');
+    return;
+  }
+
+  // === Handle StreamData (live quote updates) ===
+  if (data.StreamData) {
+    const streamPayload = data.StreamData.payload;
+    if (!streamPayload) return;
+
+    // Extract SwapQuotes from payload
+    const swapQuotes = streamPayload.SwapQuotes;
+    if (!swapQuotes) {
+      console.log('[Titan] StreamData without SwapQuotes:', Object.keys(streamPayload));
+      return;
+    }
+
+    processSwapQuotes(swapQuotes);
+    return;
+  }
+
+  // === Legacy / flat format fallback ===
+  // Some responses might come without the envelope wrapper
+  if (data.requestId !== undefined && data.data) {
+    const methodName = Object.keys(data.data)[0];
+    const result = data.data[methodName];
+    console.log('[Titan] Flat response method:', methodName);
+    return;
+  }
+
+  // Unrecognized format — log for debugging
+  console.log('[Titan] Unrecognized message format:', Object.keys(data));
+}
+
+// Process SwapQuotes from Titan stream — extract prices for tokens
+function processSwapQuotes(swapQuotes) {
+  // swapQuotes: { id, inputMint, outputMint, swapMode, amount, quotes: { providerName: Quote } }
+  if (!swapQuotes || !swapQuotes.quotes) return;
+
+  // Decode mints from Uint8Array back to base58
+  let inputMint = swapQuotes.inputMint;
+  let outputMint = swapQuotes.outputMint;
+  if (inputMint instanceof Uint8Array) inputMint = base58Encode(inputMint);
+  if (outputMint instanceof Uint8Array) outputMint = base58Encode(outputMint);
+
+  // Find best quote across all providers
+  let bestOutAmount = 0n;
+  let bestInAmount = 0n;
+  let bestProvider = '';
+  let providerData = [];
+
+  Object.entries(swapQuotes.quotes).forEach(([provider, quote]) => {
+    const outAmt = typeof quote.outAmount === 'bigint' ? quote.outAmount : BigInt(quote.outAmount || 0);
+    const inAmt = typeof quote.inAmount === 'bigint' ? quote.inAmount : BigInt(quote.inAmount || 0);
+
+    providerData.push({ provider, outAmount: outAmt, inAmount: inAmt, steps: quote.steps || [] });
+
+    if (outAmt > bestOutAmount) {
+      bestOutAmount = outAmt;
+      bestInAmount = inAmt;
+      bestProvider = provider;
+    }
+  });
+
+  if (bestOutAmount === 0n) return;
+
+  // Determine which token this quote prices
+  const mintToTicker = {};
+  Object.entries(TOKEN_MINTS).forEach(([tk, m]) => { mintToTicker[m] = tk; });
+
+  let quoteTicker = null;
+  if (mintToTicker[inputMint] && outputMint === USDC_MINT) {
+    quoteTicker = mintToTicker[inputMint];
+  } else if (mintToTicker[outputMint] && inputMint === USDC_MINT) {
+    quoteTicker = mintToTicker[outputMint];
+  }
+
+  if (!quoteTicker) return;
+
+  // Calculate effective price in USDC per 1 token
+  const tokenDecimals = TOKEN_DECIMALS_MAP[quoteTicker] || 6;
+
+  let effectivePrice = 0;
+  if (outputMint === USDC_MINT) {
+    // Token → USDC: price = outUSDC / inTokens
+    const usdcAmt = Number(bestOutAmount) / 1e6;
+    const tokenAmt = Number(bestInAmount) / Math.pow(10, tokenDecimals);
+    effectivePrice = tokenAmt > 0 ? usdcAmt / tokenAmt : 0;
+  } else {
+    // USDC → Token: price = inUSDC / outTokens
+    const usdcAmt = Number(bestInAmount) / 1e6;
+    const tokenAmt = Number(bestOutAmount) / Math.pow(10, tokenDecimals);
+    effectivePrice = tokenAmt > 0 ? usdcAmt / tokenAmt : 0;
+  }
+
+  // Update token price if valid
+  if (!isNaN(effectivePrice) && effectivePrice > 0) {
+    const tokenIdx = tokens.findIndex(t => t.ticker === quoteTicker);
+    if (tokenIdx !== -1) {
+      if (!lastPrices[quoteTicker]) lastPrices[quoteTicker] = tokens[tokenIdx].price;
+      const sessionChange = ((effectivePrice - lastPrices[quoteTicker]) / lastPrices[quoteTicker]) * 100;
+      tokens[tokenIdx].price = effectivePrice;
+      tokens[tokenIdx].change = sessionChange;
+      console.log(`[Titan] ${quoteTicker} = $${effectivePrice.toFixed(6)} (${bestProvider})`);
+
+      // If this is the currently selected token, update price label immediately
+      if (tokenIdx === selectedToken) {
+        const priceEl = document.getElementById('coinPrice');
+        if (priceEl) priceEl.textContent = fmtPrice(effectivePrice);
+        updatePosition();
+        updateTotal();
+        // In-place chart candle update (no full redraw)
+        updateLastCandle(quoteTicker, effectivePrice);
+        const cacheKey = `${quoteTicker}_${currentTF}`;
+        const cached = ohlcCache[cacheKey];
+        if (cached && cached.candles && cached.candles.length > 0 && tvSeries && quoteTicker === chartLastTicker) {
+          tvSeries.update(cached.candles[cached.candles.length - 1]);
+        }
+      }
+      priceSource = 'titan';
+    }
+  }
+
+  // Store last quote data for swap execution
+  titanLastQuote = swapQuotes;
+
+  // Update quote info panel for selected token
+  const t = tokens[selectedToken];
+  if (quoteTicker === t.ticker && effectivePrice > 0) {
+    const quoteInfo = document.getElementById('titanQuoteInfo');
+    if (quoteInfo) {
+      quoteInfo.style.display = 'block';
+      const hops = providerData.find(p => p.provider === bestProvider)?.steps?.length || 0;
+      quoteInfo.innerHTML = `⚡ ${fmtPrice(effectivePrice)} USDC | ${bestProvider} | ${hops ? hops + ' hops' : 'direct'}`;
+    }
+
+    // Show providers
+    if (providerData.length > 0) {
+      const provDiv = document.getElementById('titanProviders');
+      if (provDiv) {
+        provDiv.style.display = 'block';
+        provDiv.innerHTML = providerData.sort((a, b) => Number(b.outAmount - a.outAmount)).slice(0, 4).map((p, i) => {
+          const price = Number(p.outAmount) / 1e6;
+          return `<div class="titan-provider-row"><span class="titan-provider-name">${p.provider}</span><span class="titan-provider-price">${price.toFixed(4)}</span>${i===0?'<span class="titan-provider-best">BEST</span>':''}</div>`;
+        }).join('');
+      }
     }
   }
 }
@@ -2783,7 +3191,7 @@ function startTitanQuoteStream() {
 
   // Calculate amount based on quantity input
   const qty = parseFloat(document.getElementById('qtyInput').value) || 1;
-  const decimals = offerSide === 'buy' ? 6 : (ticker === 'SOL' ? 9 : 6); // USDC=6, SOL=9, others=6
+  const decimals = offerSide === 'buy' ? 6 : (TOKEN_DECIMALS_MAP[ticker] || 6);
   let amount;
   if (offerSide === 'buy') {
     // Send USDC amount
@@ -2815,21 +3223,32 @@ function startTitanQuoteStream() {
 function sendTitanQuote(inputMint, outputMint, amount) {
   if (!titanWs || titanWs.readyState !== 1) return;
 
+  // Titan WS protocol: MessagePack encoded
+  // Format: { id: N, data: { "NewSwapQuoteStream": { inputMint, outputMint, amount, swapMode, slippageBps, intervalMs } } }
+  // Addresses must be 32-byte Uint8Array (not base58 strings)
+  // Note: The exact NewSwapQuoteStream message format requires Titan's SDK for proper encoding.
+  // GetInfo works reliably; quote streaming may fail on public endpoint without full SDK.
   const msg = {
-    jsonrpc: '2.0',
-    method: 'quote',
-    params: {
-      inputMint: inputMint,
-      outputMint: outputMint,
-      amount: amount.toString(),
-      slippageBps: 50, // 0.5% slippage
-      swapMode: 'ExactIn',
-    },
-    id: ++titanQuoteId
+    id: ++titanQuoteId,
+    data: {
+      NewSwapQuoteStream: {
+        inputMint: base58Decode(inputMint),
+        outputMint: base58Decode(outputMint),
+        amount: BigInt(amount),
+        swapMode: 'ExactIn',
+        slippageBps: 50,
+        intervalMs: 1000,
+      }
+    }
   };
 
   try {
-    titanWs.send(JSON.stringify(msg));
+    if (typeof MessagePack !== 'undefined' && MessagePack.encode) {
+      const encoded = MessagePack.encode(msg);
+      titanWs.send(encoded);
+    } else {
+      console.warn('[Titan] MessagePack not available');
+    }
   } catch (e) {
     console.error('[Titan] Send error:', e);
   }
@@ -2841,19 +3260,24 @@ function executeTitanSwap() {
     return false;
   }
 
-  // Send swap execution request
+  // Note: Swap execution requires wallet integration — quote streaming only for now
+  // The Playground-api README states: "This playground is for testing the quote streaming API only."
   const msg = {
-    jsonrpc: '2.0',
-    method: 'swap',
-    params: {
-      quoteResponse: titanLastQuote,
-      userPublicKey: 'WALLET_NOT_CONNECTED', // Would need wallet adapter
-    },
-    id: ++titanQuoteId
+    id: ++titanQuoteId,
+    data: {
+      ExecuteSwap: {
+        quoteResponse: titanLastQuote,
+        userPublicKey: base58Decode('11111111111111111111111111111111'),
+      }
+    }
   };
 
   try {
-    titanWs.send(JSON.stringify(msg));
+    if (typeof MessagePack !== 'undefined' && MessagePack.encode) {
+      titanWs.send(MessagePack.encode(msg));
+    } else {
+      titanWs.send(JSON.stringify(msg));
+    }
 
     // Track volume for leveling
     const t = tokens[selectedToken];
@@ -3318,7 +3742,8 @@ let priceSource = 'sim'; // 'titan', 'jupiter', 'sim'
 let titanPriceSweepActive = false;
 
 // === TITAN PRICE SWEEP ===
-// Sends WS quote requests for ALL tokens against USDC to get live prices
+// Sends MessagePack quote requests for ALL tokens against USDC to get live prices
+// Uses proper Titan native protocol: { id: N, data: { "NewSwapQuoteStream": { swap, transaction } } }
 function startTitanPriceSweep() {
   if (!titanConnected || !titanWs || titanWs.readyState !== 1) return;
   if (titanPriceSweepActive) return;
@@ -3326,10 +3751,12 @@ function startTitanPriceSweep() {
 
   const tickerQueue = Object.keys(TOKEN_MINTS).slice();
   let idx = 0;
+  console.log('[Titan] Starting price sweep for', tickerQueue.length, 'tokens');
 
   function sweepNext() {
     if (idx >= tickerQueue.length) {
       titanPriceSweepActive = false;
+      console.log('[Titan] Price sweep complete');
       return;
     }
     if (!titanConnected || !titanWs || titanWs.readyState !== 1) {
@@ -3341,30 +3768,38 @@ function startTitanPriceSweep() {
     const mint = TOKEN_MINTS[ticker];
     if (!mint) { sweepNext(); return; }
 
-    // Quote: sell token for USDC to get price
-    const tokenDecimals = ticker === 'SOL' ? 9 : (ticker === 'BONK' ? 5 : 6);
-    const amt = ticker === 'BONK' ? '100000000' : ticker === 'SOL' ? '1000000000' : '1000000';
+    // Quote: sell 1 unit of token for USDC to get price
+    const decimals = TOKEN_DECIMALS_MAP[ticker] || 6;
+    const amount = BigInt(Math.pow(10, decimals)); // 1 token in smallest units
 
+    // Titan WS protocol format with MessagePack
     const msg = {
-      jsonrpc: '2.0',
-      method: 'quote',
-      params: {
-        inputMint: mint,
-        outputMint: USDC_MINT,
-        amount: amt,
-        slippageBps: 100,
-        swapMode: 'ExactIn',
-      },
-      id: ++titanQuoteId
+      id: ++titanQuoteId,
+      data: {
+        NewSwapQuoteStream: {
+          inputMint: base58Decode(mint),
+          outputMint: base58Decode(USDC_MINT),
+          amount: amount,
+          swapMode: 'ExactIn',
+          slippageBps: 100,
+          intervalMs: 1000,
+        }
+      }
     };
 
     try {
-      titanWs.send(JSON.stringify(msg));
+      if (typeof MessagePack !== 'undefined' && MessagePack.encode) {
+        const encoded = MessagePack.encode(msg);
+        titanWs.send(encoded);
+      } else {
+        console.warn('[Titan] MessagePack not loaded for sweep');
+      }
     } catch(e) {
       console.warn('[Titan] Price sweep send error:', e);
     }
 
-    setTimeout(sweepNext, 150);
+    // Stagger requests 200ms apart to avoid overloading
+    setTimeout(sweepNext, 200);
   }
 
   sweepNext();
@@ -3372,10 +3807,27 @@ function startTitanPriceSweep() {
 
 // === COINGECKO + JUPITER QUOTE PRICE ENGINE ===
 const COINGECKO_ID_MAP = {
+  // Blue Chips
   SOL: 'solana', JUP: 'jupiter-exchange-solana', RAY: 'raydium',
-  JTO: 'jito-governance-token', MNDE: 'marinade', PYTH: 'pyth-network',
-  BONK: 'bonk', WIF: 'dogwifcoin', TNSR: 'tensor', ORCA: 'orca',
+  JTO: 'jito-governance-token', PYTH: 'pyth-network',
   RNDR: 'render-token', HNT: 'helium',
+  // DeFi
+  ORCA: 'orca', MNDE: 'marinade', TNSR: 'tensor',
+  MSOL: 'msol', JITOSOL: 'jito-staked-sol', BSOL: 'blazestake-staked-sol',
+  INF: 'infinity-by-sanctum',
+  // Memecoins
+  BONK: 'bonk', WIF: 'dogwifcoin', POPCAT: 'popcat',
+  MEW: 'cat-in-a-dogs-world', TRUMP: 'official-trump',
+  FARTCOIN: 'fartcoin', WEN: 'wen-4', SAMO: 'samoyedcoin', MYRO: 'myro',
+  // Infrastructure & Gaming
+  W: 'wormhole', MOBILE: 'helium-mobile', IOT: 'helium-iot',
+  ATLAS: 'star-atlas', POLIS: 'star-atlas-dao', DUST: 'dust-protocol',
+  // Stablecoins & Wrapped
+  USDT: 'tether', WBTC: 'wrapped-bitcoin', WETH: 'weth',
+  CBBTC: 'coinbase-wrapped-btc',
+  // AI & DePIN
+  AI16Z: 'ai16z', GRIFFAIN: 'griffain', VIRTUAL: 'virtual-protocol',
+  ZEREBRO: 'zerebro',
 };
 const COINGECKO_IDS = Object.values(COINGECKO_ID_MAP).join(',');
 const TICKER_BY_CGID = {};
@@ -3413,73 +3865,187 @@ async function fetchJupiterQuotePrices() {
   const quoteTokens = Object.entries(TOKEN_MINTS);
   let updated = false;
 
-  for (const [ticker, mint] of quoteTokens) {
-    try {
-      const decimals = ticker === 'SOL' ? 9 : (ticker === 'BONK' ? 5 : 6);
+  // Fire ALL token quotes in parallel — 20x faster than sequential
+  const BATCH_SIZE = 10; // avoid hammering with 38 simultaneous requests
+  for (let i = 0; i < quoteTokens.length; i += BATCH_SIZE) {
+    const batch = quoteTokens.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(batch.map(async ([ticker, mint]) => {
+      const decimals = TOKEN_DECIMALS_MAP[ticker] || 6;
       const amt = Math.pow(10, decimals).toString();
       const url = 'https://lite-api.jup.ag/swap/v1/quote?inputMint=' + mint + '&outputMint=' + USDC_MINT + '&amount=' + amt + '&slippageBps=100';
-      const resp = await fetch(url);
-      if (!resp.ok) continue;
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), 3000);
+      const resp = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(tm);
+      if (!resp.ok) return null;
       const q = await resp.json();
       const usdcOut = parseFloat(q.outAmount) / 1e6;
-      if (isNaN(usdcOut) || usdcOut <= 0) continue;
+      if (isNaN(usdcOut) || usdcOut <= 0) return null;
+      return { ticker, usdcOut };
+    }));
 
+    for (const r of results) {
+      if (r.status !== 'fulfilled' || !r.value) continue;
+      const { ticker, usdcOut } = r.value;
       const tokenIdx = tokens.findIndex(t => t.ticker === ticker);
       if (tokenIdx === -1) continue;
-
       if (!lastPrices[ticker]) lastPrices[ticker] = usdcOut;
       const sessionChange = ((usdcOut - lastPrices[ticker]) / lastPrices[ticker]) * 100;
       tokens[tokenIdx].price = usdcOut;
       tokens[tokenIdx].change = sessionChange;
       updated = true;
-    } catch(e) { /* skip token */ }
+    }
   }
 
-  if (updated) console.log('[Jupiter Quote] Prices derived from swap quotes');
+  if (updated) console.log('[Jupiter Quote] Prices updated (parallel batches of ' + BATCH_SIZE + ')');
   return updated;
 }
 
-// === UNIFIED PRICE FETCH ===
-async function fetchLivePrices() {
-  try {
-    let updated = false;
+// ============================================================================
+// SMART PRICE ENGINE — benchmark → lock → poll (no wasted requests)
+// Benchmark results (30s, 6 rounds from GitHub Pages):
+//   ✅ CoinGecko:    avg  24ms | p50   6ms | 100% reliable (bulk, fewer coins)
+//   ✅ Jupiter 1tok: avg  86ms | p50  86ms | 100% reliable
+//   ✅ Jupiter 10‖:  avg 227ms | p50 214ms | 100% reliable (all tokens parallel)
+//   ❌ Titan REST:   FAIL — no CORS headers
+//   ❌ Binance OHLC: FAIL — CORS blocked
+// Strategy: race all feeds, lock onto fastest, re-eval every 60s
+// ============================================================================
 
-    // PRIMARY: Titan WebSocket price sweep (if connected)
-    if (titanConnected && titanWs && titanWs.readyState === 1) {
-      startTitanPriceSweep();
-      priceSource = 'titan';
-      updated = true;
-    } else {
-      // FALLBACK CHAIN: CoinGecko → Jupiter Quote → Simulation
-      try {
-        updated = await fetchCoinGeckoPrices();
-        if (updated) priceSource = 'jupiter'; // green = live API data
-      } catch(cgErr) {
-        console.warn('[LIVE] CoinGecko failed:', cgErr.message);
-        try {
-          updated = await fetchJupiterQuotePrices();
-          if (updated) priceSource = 'jupiter';
-        } catch(jqErr) {
-          console.warn('[LIVE] Jupiter Quote failed:', jqErr.message);
-        }
+const TITAN_REST_BASE = 'https://partners.api.titan.exchange/api/v1';
+const USDC_MINT_ADDR = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+
+// Feed registry
+const priceFeeds = {
+  titan: {
+    name: 'Titan WS', label: 'titan',
+    latency: Infinity, failures: 0, healthy: false,
+    fetch: async () => {
+      // Titan REST has no CORS headers — skip it in browser context.
+      // Titan WS price data flows through the WebSocket stream handler
+      // (processSwapQuotes) and updates prices directly.
+      // Mark as healthy only if WS is connected and has delivered quotes.
+      if (titanConnected && titanLastQuote) {
+        return true; // WS is feeding prices already
       }
-
-      if (!updated) {
-        simulatePriceMovement();
-        priceSource = 'sim';
-        updated = true;
-      }
+      return false;
     }
-
-    if (updated) {
-      refreshPriceUI();
-    }
-  } catch(e) {
-    console.warn('[LIVE] Price fetch failed, using simulation:', e.message);
-    simulatePriceMovement();
-    priceSource = 'sim';
-    refreshPriceUI();
+  },
+  jupiter: {
+    name: 'Jupiter REST', label: 'jupiter',
+    latency: Infinity, failures: 0, healthy: false,
+    fetch: async () => await fetchJupiterQuotePrices()
+  },
+  coingecko: {
+    name: 'CoinGecko REST', label: 'jupiter',
+    latency: Infinity, failures: 0, healthy: false,
+    fetch: async () => await fetchCoinGeckoPrices()
   }
+};
+
+let activeFeed = null;
+let lastFeedReeval = 0;
+const FEED_REEVAL_MS = 60000;
+
+// Race all feeds in parallel, measure latency, lock onto fastest
+async function benchmarkAllFeeds() {
+  const t0 = performance.now();
+  console.log('[BENCH] Racing all feeds in parallel...');
+  const keys = Object.keys(priceFeeds);
+
+  const results = await Promise.allSettled(keys.map(async key => {
+    const feed = priceFeeds[key];
+    const start = performance.now();
+    try {
+      const ok = await feed.fetch();
+      const ms = performance.now() - start;
+      if (ok) {
+        feed.latency = ms; feed.failures = 0; feed.healthy = true;
+        return { key, ms };
+      }
+      feed.healthy = false;
+      return { key, ms: Infinity };
+    } catch(e) {
+      feed.latency = Infinity; feed.failures++; feed.healthy = false;
+      return { key, ms: Infinity };
+    }
+  }));
+
+  // Pick fastest
+  let best = null, bestMs = Infinity;
+  results.forEach(r => {
+    if (r.status === 'fulfilled' && r.value.ms < bestMs) {
+      best = r.value.key; bestMs = r.value.ms;
+    }
+  });
+
+  // Log results
+  keys.forEach(k => {
+    const f = priceFeeds[k];
+    const arrow = k === best ? '→' : ' ';
+    console.log(`  ${arrow} ${f.name}: ${f.healthy ? f.latency.toFixed(0) + 'ms ✓' : 'FAILED ✗'}`);
+  });
+
+  if (best) {
+    activeFeed = best;
+    console.log(`[BENCH] Winner: ${priceFeeds[best].name} (${bestMs.toFixed(0)}ms) — locked in (${(performance.now()-t0).toFixed(0)}ms total)`);
+  } else {
+    activeFeed = null;
+    console.warn('[BENCH] All feeds failed → simulation mode');
+  }
+  lastFeedReeval = Date.now();
+  return best;
+}
+
+// Hot-path price fetch — locked feed only, no waterfall
+async function fetchLivePrices() {
+  // Periodic re-eval (fire-and-forget)
+  if (Date.now() - lastFeedReeval > FEED_REEVAL_MS) {
+    benchmarkAllFeeds();
+  }
+
+  let updated = false;
+
+  // 1. Locked feed (single call, no overhead)
+  if (activeFeed && priceFeeds[activeFeed]) {
+    const feed = priceFeeds[activeFeed];
+    try {
+      updated = await feed.fetch();
+      if (updated) { priceSource = feed.label; feed.failures = 0; }
+      else feed.failures++;
+    } catch(e) { feed.failures++; }
+    // 3 consecutive failures → force re-benchmark
+    if (feed.failures >= 3) {
+      console.warn(`[LIVE] ${feed.name} failed 3x → re-benchmarking`);
+      feed.healthy = false; lastFeedReeval = 0;
+    }
+  }
+
+  // 2. Fallback: try other healthy feeds
+  if (!updated) {
+    for (const key of Object.keys(priceFeeds)) {
+      if (key === activeFeed) continue;
+      const feed = priceFeeds[key];
+      try {
+        updated = await feed.fetch();
+        if (updated) {
+          priceSource = feed.label; activeFeed = key;
+          console.log(`[LIVE] Switched → ${feed.name}`);
+          break;
+        }
+      } catch(e) {}
+    }
+  }
+
+  // 3. Titan WS if connected
+  if (!updated && titanConnected && titanWs && titanWs.readyState === 1) {
+    startTitanPriceSweep(); priceSource = 'titan'; updated = true;
+  }
+
+  // 4. Simulation
+  if (!updated) { simulatePriceMovement(); priceSource = 'sim'; updated = true; }
+
+  if (updated) refreshPriceUI();
 }
 
 // Centralized UI refresh after any price update
@@ -3503,9 +4069,16 @@ function refreshPriceUI() {
     setTimeout(() => { priceEl.style.color = ''; }, 600);
   }
 
+  // Update last candle close with latest REST price (in-place, no full redraw)
   if (tokens[selectedToken]) {
-    addChartPoint(tokens[selectedToken].ticker, tokens[selectedToken].price);
-    drawChart(tokens[selectedToken].ticker);
+    const tk = tokens[selectedToken];
+    updateLastCandle(tk.ticker, tk.price);
+    // Only push the single candle update to the chart series — no re-fetch
+    const cacheKey = `${tk.ticker}_${currentTF}`;
+    const cached = ohlcCache[cacheKey];
+    if (cached && cached.candles && cached.candles.length > 0 && tvSeries && tk.ticker === chartLastTicker) {
+      tvSeries.update(cached.candles[cached.candles.length - 1]);
+    }
   }
   if (typeof updatePortfolioDisplay === 'function') updatePortfolioDisplay();
   if (typeof syncSlotsWithPositions === 'function') syncSlotsWithPositions();
@@ -3592,44 +4165,47 @@ function startLivePrices() {
   updateChart();
   buildTicker();
 
-  // STEP 1: Try connecting to Titan production API if key is available
-  if (titanToken) {
-    console.log('[LIVE] Titan API key found, connecting to production...');
-    titanEnv = 'production';
-    connectTitan();
-  } else {
-    console.log('[LIVE] No Titan API key — using Jupiter Price API');
-    console.log('[LIVE] To enable Titan: add ?titanKey=YOUR_KEY to URL or call configureTitan("KEY","production","global");connectTitan();');
-  }
+  // STEP 1: Race all feeds in parallel, lock onto fastest
+  benchmarkAllFeeds().then(winner => {
+    console.log(`[LIVE] Locked → ${winner ? priceFeeds[winner].name : 'simulation'}`);
+  }).catch(() => {});
 
-  // STEP 2: Meanwhile, fetch initial prices from Jupiter API (instant results)
-  fetchLivePrices().then(() => {
-    console.log('[LIVE] Initial prices loaded');
-  }).catch(() => {
-    console.log('[LIVE] Running in simulation mode');
-  });
+  // Background Titan WS attempt (opportunistic)
+  setTimeout(() => {
+    if (typeof connectTitan === 'function') {
+      try { connectTitan(); } catch(e) {}
+    }
+  }, 5000);
 
-  // Price refresh: CoinGecko free tier allows ~30 calls/min, so poll every 30s
-  // Titan sweep runs if connected, otherwise CoinGecko → Jupiter Quote → Sim
+  // Price refresh: poll LOCKED feed every 1s (single call, ~100-200ms)
   priceUpdateInterval = setInterval(() => {
     fetchLivePrices();
-  }, 30000); // Every 30s to stay within CoinGecko free tier limits
+  }, 1000);
 
-  // Chart update: keep chart alive with latest price every 3s
+  // Chart live-tick every 500ms — smooth candle animation
   setInterval(() => {
-    if (tokens[selectedToken]) {
-      addChartPoint(tokens[selectedToken].ticker, tokens[selectedToken].price);
-      drawChart(tokens[selectedToken].ticker);
+    if (priceSource === 'sim') {
+      simulatePriceMovement();
     }
-  }, 3000);
+    // In-place update: modify cached candle + push to series (no drawChart re-fetch)
+    if (tokens[selectedToken]) {
+      const tk = tokens[selectedToken];
+      updateLastCandle(tk.ticker, tk.price);
+      const cacheKey = `${tk.ticker}_${currentTF}`;
+      const cached = ohlcCache[cacheKey];
+      if (cached && cached.candles && cached.candles.length > 0 && tvSeries && tk.ticker === chartLastTicker) {
+        tvSeries.update(cached.candles[cached.candles.length - 1]);
+      }
+    }
+  }, 500);
 
-  // Whale coin ticker + top movers updates every 4s
+  // Whale coin ticker + top movers updates every 2s
   setInterval(() => {
     updateTickerPrices();
     renderTopMovers();
-  }, 4000);
+  }, 2000);
 
-  console.log('[LIVE] Price engine started (Titan primary → Jupiter fallback → simulation)');
+  console.log('[LIVE] Price engine started — benchmark → lock → 1s poll, 500ms chart tick');
 }
 
 // ===== INIT =====
