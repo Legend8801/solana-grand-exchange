@@ -3850,7 +3850,11 @@ Object.entries(COINGECKO_ID_MAP).forEach(([tk, cg]) => { TICKER_BY_CGID[cg] = tk
 
 async function fetchCoinGeckoPrices() {
   const url = 'https://api.coingecko.com/api/v3/simple/price?ids=' + COINGECKO_IDS + '&vs_currencies=usd';
-  const resp = await fetch(url);
+  const ctrl = new AbortController();
+  const tm = setTimeout(() => ctrl.abort(), 5000);
+  const resp = await fetch(url, { signal: ctrl.signal });
+  clearTimeout(tm);
+  if (resp.status === 429) { console.warn('[CoinGecko] Rate limited — backing off'); return false; }
   if (!resp.ok) throw new Error('CoinGecko returned ' + resp.status);
   const data = await resp.json();
 
@@ -3892,8 +3896,10 @@ async function fetchJupiterQuotePrices() {
       const tm = setTimeout(() => ctrl.abort(), 3000);
       const resp = await fetch(url, { signal: ctrl.signal });
       clearTimeout(tm);
+      if (resp.status === 429) return null; // rate limited
       if (!resp.ok) return null;
       const q = await resp.json();
+      if (typeof q === 'string' || q.error) return null; // "Rate limit" text response
       const usdcOut = parseFloat(q.outAmount) / 1e6;
       if (isNaN(usdcOut) || usdcOut <= 0) return null;
       return { ticker, usdcOut };
@@ -3952,7 +3958,7 @@ const priceFeeds = {
     fetch: async () => await fetchJupiterQuotePrices()
   },
   coingecko: {
-    name: 'CoinGecko REST', label: 'jupiter',
+    name: 'CoinGecko REST', label: 'coingecko',
     latency: Infinity, failures: 0, healthy: false,
     fetch: async () => await fetchCoinGeckoPrices()
   }
@@ -4014,9 +4020,7 @@ async function benchmarkAllFeeds() {
 
 // Prevent overlapping fetches
 let _priceFetchInFlight = false;
-let _lastFullFetch = 0;
-const FULL_FETCH_INTERVAL = 2000; // Full all-token fetch every 2s
-const SELECTED_FETCH_INTERVAL = 500; // Selected token fetch every 500ms
+// Polling now handled by setInterval in startLivePrices()
 
 // Fast single-token Jupiter quote for the selected token
 async function fetchSelectedTokenPrice() {
@@ -4032,8 +4036,10 @@ async function fetchSelectedTokenPrice() {
     const tm = setTimeout(() => ctrl.abort(), 2000);
     const resp = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tm);
+    if (resp.status === 429) return false; // rate limited
     if (!resp.ok) return false;
     const q = await resp.json();
+    if (typeof q === 'string' || q.error) return false; // "Rate limit" text
     const usdcOut = parseFloat(q.outAmount) / 1e6;
     if (isNaN(usdcOut) || usdcOut <= 0) return false;
     if (!lastPrices[t.ticker]) lastPrices[t.ticker] = usdcOut;
@@ -4057,31 +4063,18 @@ async function fetchLivePrices() {
     }
 
     let updated = false;
-    const now = Date.now();
-    const doFullFetch = (now - _lastFullFetch >= FULL_FETCH_INTERVAL);
 
-    // 1. Locked feed
+    // 1. Locked feed — full fetch for all tokens
     if (activeFeed && priceFeeds[activeFeed]) {
       const feed = priceFeeds[activeFeed];
       try {
-        if (doFullFetch) {
-          // Full fetch: all tokens
-          updated = await feed.fetch();
-          if (updated) _lastFullFetch = now;
-        } else {
-          // Quick fetch: just selected token (fast ~80ms)
-          if (feed.label === 'jupiter') {
-            updated = await fetchSelectedTokenPrice();
-          } else {
-            updated = await feed.fetch();
-          }
-        }
+        updated = await feed.fetch();
         if (updated) { priceSource = feed.label; feed.failures = 0; }
         else feed.failures++;
       } catch(e) { feed.failures++; }
-      // 3 consecutive failures → force re-benchmark
-      if (feed.failures >= 3) {
-        console.warn(`[LIVE] ${feed.name} failed 3x → re-benchmarking`);
+      // 5 consecutive failures → force re-benchmark (generous to avoid churn)
+      if (feed.failures >= 5) {
+        console.warn(`[LIVE] ${feed.name} failed 5x → re-benchmarking`);
         feed.healthy = false; lastFeedReeval = 0;
       }
     }
@@ -4102,8 +4095,8 @@ async function fetchLivePrices() {
       }
     }
 
-    // 3. Titan WS if connected
-    if (!updated && titanConnected && titanWs && titanWs.readyState === 1) {
+    // 3. Titan WS if connected AND delivering actual quotes
+    if (!updated && titanConnected && titanLastQuote && titanWs && titanWs.readyState === 1) {
       startTitanPriceSweep(); priceSource = 'titan'; updated = true;
     }
 
@@ -4220,14 +4213,23 @@ function startLivePrices() {
     }
   }, 5000);
 
-  // Price refresh: poll LOCKED feed every 500ms for snappy updates
+  // Price refresh: poll LOCKED feed every 5s (respects free API rate limits)
+  // CoinGecko free = ~30 req/min, Jupiter free = ~60 req/min
   priceUpdateInterval = setInterval(() => {
     fetchLivePrices();
-  }, 500);
+  }, 5000);
 
-  // Chart live-tick every 250ms — ultra-smooth candle animation
+  // Fast selected-token price check every 2s (single lightweight Jupiter call)
   setInterval(() => {
-    // Push latest real price to chart candle (no simulation — prices only change from API)
+    if (!_priceFetchInFlight && activeFeed) {
+      fetchSelectedTokenPrice().then(ok => {
+        if (ok) { priceSource = priceFeeds[activeFeed]?.label || priceSource; refreshPriceUI(); }
+      }).catch(() => {});
+    }
+  }, 2000);
+
+  // Chart live-tick every 500ms — smooth candle animation from cached prices
+  setInterval(() => {
     if (tokens[selectedToken]) {
       const tk = tokens[selectedToken];
       updateLastCandle(tk.ticker, tk.price);
@@ -4237,15 +4239,15 @@ function startLivePrices() {
         tvSeries.update(cached.candles[cached.candles.length - 1]);
       }
     }
-  }, 250);
+  }, 500);
 
-  // Whale coin ticker + top movers updates every 1.5s
+  // Whale coin ticker + top movers updates every 3s
   setInterval(() => {
     updateTickerPrices();
     renderTopMovers();
-  }, 1500);
+  }, 3000);
 
-  console.log('[LIVE] Price engine started — benchmark → lock → 500ms poll, 250ms chart tick');
+  console.log('[LIVE] Price engine started — benchmark → lock → 5s full poll, 2s selected token');
 }
 
 // ===== INIT =====
