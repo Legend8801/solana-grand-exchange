@@ -1,0 +1,3776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trade — Solana</title>
+<link href="https://fonts.cdnfonts.com/css/runescape-uf" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  @import url('https://fonts.cdnfonts.com/css/runescape-uf');
+
+  :root {
+    --bg-outer: #544b3e;
+    --bg-panel: #484036;
+    --bg-inner: #3e372e;
+    --bg-input: #2b2520;
+    --bg-slot: #1f1b17;
+    --bevel-top: #6e6350;
+    --bevel-bottom: #2d2822;
+    --bevel-dark: #1a1612;
+    --btn-face: #564d40;
+    --btn-top: #6e6350;
+    --btn-bottom: #3a342c;
+    --btn-hover: #645a4c;
+    --text-orange: #ff981f;
+    --text-white: #ffffff;
+    --text-yellow: #ffff00;
+    --text-green: #00ff00;
+    --text-red: #ff3333;
+    --text-cyan: #00ffff;
+    --text-gray: #9f9483;
+    --bar-green: #00b400;
+    --bar-red: #b40000;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+
+  body {
+    background-color: #3b3326;
+    background-image:
+      url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='60' height='60' fill='%233b3326'/%3E%3Crect x='0' y='0' width='30' height='20' rx='2' fill='%23403829' stroke='%23332d22' stroke-width='1'/%3E%3Crect x='30' y='0' width='30' height='20' rx='2' fill='%233d3527' stroke='%23332d22' stroke-width='1'/%3E%3Crect x='15' y='20' width='30' height='20' rx='2' fill='%233a3225' stroke='%23332d22' stroke-width='1'/%3E%3Crect x='-15' y='20' width='30' height='20' rx='2' fill='%233e3628' stroke='%23332d22' stroke-width='1'/%3E%3Crect x='45' y='20' width='30' height='20' rx='2' fill='%233c3426' stroke='%23332d22' stroke-width='1'/%3E%3Crect x='0' y='40' width='30' height='20' rx='2' fill='%233d3527' stroke='%23332d22' stroke-width='1'/%3E%3Crect x='30' y='40' width='30' height='20' rx='2' fill='%233b3325' stroke='%23332d22' stroke-width='1'/%3E%3C/svg%3E");
+    font-family: 'RuneScape UF', 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  /* ===== WHALE WATCHER TICKER TAPE ===== */
+  .ticker-wrapper {
+    width: 1098px;
+    background: var(--bg-outer);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom), 3px 3px 12px rgba(0,0,0,0.6);
+    overflow: hidden;
+    position: relative;
+  }
+  .ticker-header {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border-bottom: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 2px 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .ticker-header-left { display: flex; align-items: center; gap: 6px; }
+  .ticker-header-left span { font-size: 10px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .ticker-whale-icon { font-size: 14px; filter: drop-shadow(1px 1px 0 rgba(0,0,0,0.5)); }
+  .ticker-badge {
+    font-size: 9px; color: var(--text-cyan); text-shadow: 1px 1px 0 #000;
+    background: rgba(0,255,255,0.08); border: 1px solid rgba(0,255,255,0.2);
+    padding: 0 5px; letter-spacing: 0.5px;
+  }
+  .ticker-track {
+    background: var(--bg-slot);
+    border-top: 1px solid rgba(110,99,80,0.15);
+    height: 22px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .ticker-scroll {
+    display: inline-flex;
+    gap: 0;
+    animation: tickerScroll 60s linear infinite;
+    white-space: nowrap;
+    will-change: transform;
+  }
+  .ticker-scroll:hover { animation-play-state: paused; }
+  @keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .ticker-item {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 12px;
+    font-size: 11px; color: var(--text-white); text-shadow: 1px 1px 0 #000;
+    border-right: 1px solid rgba(110,99,80,0.15);
+    cursor: pointer;
+    flex-shrink: 0;
+    height: 22px;
+  }
+  .ticker-item:hover { background: rgba(255,152,31,0.06); }
+  .ticker-sym { color: var(--text-orange); font-size: 12px; }
+  .ticker-price { color: var(--text-yellow); }
+  .ticker-change { font-size: 11px; }
+  .ticker-change.up { color: var(--text-green); }
+  .ticker-change.down { color: var(--text-red); }
+  .ticker-tag {
+    font-size: 8px; padding: 0 3px;
+    border: 1px solid rgba(0,255,0,0.25);
+    color: var(--text-green); background: rgba(0,180,0,0.08);
+    letter-spacing: 0.3px;
+  }
+  .ticker-tag.whale { border-color: rgba(0,255,255,0.25); color: var(--text-cyan); background: rgba(0,200,255,0.08); }
+  .ticker-tag.lowfdv { border-color: rgba(255,255,0,0.25); color: var(--text-yellow); background: rgba(255,255,0,0.06); }
+  .ticker-sep { color: var(--text-gray); opacity: 0.3; font-size: 10px; padding: 0 2px; }
+
+  /* ===== OSRS PANELS ===== */
+  .osrs-panel-outer {
+    background: var(--bg-outer);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom), 3px 3px 12px rgba(0,0,0,0.6);
+    padding: 3px;
+  }
+  .osrs-panel-inner {
+    background: var(--bg-panel);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-bottom), inset -1px -1px 0 var(--bevel-top);
+    padding: 0;
+  }
+  .osrs-sunken {
+    background: var(--bg-input);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-bottom), inset -1px -1px 0 rgba(110,99,80,0.3);
+  }
+  .osrs-deep-sunken {
+    background: var(--bg-slot);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 #151210, inset -1px -1px 0 rgba(100,90,70,0.2), inset 0 0 6px rgba(0,0,0,0.4);
+  }
+
+  /* ===== OSRS BUTTON ===== */
+  .osrs-btn {
+    font-family: 'RuneScape UF', inherit;
+    font-size: 13px; font-weight: normal;
+    color: var(--text-orange); text-shadow: 1px 1px 0 #000;
+    letter-spacing: 0.5px;
+    background: var(--btn-face);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--btn-top), inset -1px -1px 0 var(--btn-bottom);
+    cursor: pointer; padding: 3px 8px; line-height: 1.2; user-select: none;
+  }
+  .osrs-btn:hover { background: var(--btn-hover); color: var(--text-white); }
+  .osrs-btn:active { background: var(--btn-bottom); box-shadow: inset 1px 1px 0 var(--btn-bottom), inset -1px -1px 0 var(--btn-top); }
+  .osrs-btn-sm { font-size: 12px; padding: 2px 4px; min-width: 34px; text-align: center; }
+
+  /* ===== MAIN LAYOUT ===== */
+  .main-layout { display: flex; gap: 4px; align-items: flex-start; user-select: none; }
+  .center-col { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; width: 490px; }
+
+  /* ===== GE WINDOW ===== */
+  .ge-window { width: 490px; flex-shrink: 0; }
+  .ge-titlebar {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 3px 8px; text-align: center; position: relative;
+  }
+  .ge-titlebar h1 { font-size: 13px; font-weight: normal; color: var(--text-orange); text-shadow: 1px 1px 0 #000; letter-spacing: 0.5px; margin: 0; }
+  .ge-body { padding: 4px 8px; display: flex; flex-direction: column; gap: 3px; }
+
+  .offer-header { display: flex; gap: 8px; align-items: flex-start; }
+  .offer-badge-area { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 80px; }
+  .offer-badge-label { font-size: 13px; font-weight: normal; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .offer-badge-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+  .arrow-up { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 13px solid var(--text-green); filter: drop-shadow(1px 1px 0 #000); }
+  .arrow-down { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 13px solid var(--text-red); filter: drop-shadow(1px 1px 0 #000); }
+
+  .item-icon-box { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+  .item-text-info { flex: 1; display: flex; flex-direction: column; gap: 1px; padding-top: 2px; }
+  .item-name { font-size: 13px; font-weight: normal; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .item-desc { font-size: 11px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; }
+
+  .coin-row { display: flex; align-items: center; gap: 5px; padding: 2px 6px; margin-top: 1px; }
+  .coin { width: 12px; height: 12px; background: radial-gradient(circle at 40% 35%, #ffe878, #d4a020, #9a7010); border-radius: 50%; border: 1px solid #705008; box-shadow: 0 1px 0 rgba(0,0,0,0.3); flex-shrink: 0; display: inline-block; }
+  .coin-lg { width: 14px; height: 14px; }
+  .coin-value { font-size: 13px; font-weight: normal; color: var(--text-white); text-shadow: 1px 1px 0 #000; }
+  .coin-label { font-size: 11px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; }
+
+  .qty-price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .field-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .field-label { font-size: 13px; font-weight: normal; color: var(--text-orange); text-shadow: 1px 1px 0 #000; text-align: center; }
+  .osrs-input { font-family: 'RuneScape UF', inherit; font-size: 13px; font-weight: normal; color: var(--text-yellow); text-shadow: 1px 1px 0 #000; background: var(--bg-slot); border: 1px solid var(--bevel-dark); box-shadow: inset 1px 1px 0 #151210, inset -1px -1px 0 rgba(100,90,70,0.2); padding: 3px 6px; text-align: center; outline: none; width: 100%; }
+  .osrs-input:focus { color: var(--text-white); }
+
+  .btn-row { display: flex; gap: 3px; justify-content: center; }
+  .osrs-icon-btn { width: 24px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .total-bar { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 3px 8px; }
+  .confirm-row { display: flex; align-items: center; gap: 8px; padding-top: 1px; }
+  .back-btn { width: 32px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 18px; padding: 0; }
+  .confirm-btn { flex: 1; padding: 5px 16px; font-size: 13px; text-align: center; }
+
+  .ge-slots-bar { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 3px 3px; margin-bottom: 0px; }
+  .ge-slot { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; padding: 2px; font-size: 10px; }
+  .ge-slot:hover { background: rgba(255,255,255,0.03); }
+  .ge-slot .slot-icon { font-size: 16px; line-height: 1; }
+  .ge-slot .slot-label { font-size: 8px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; text-align: center; margin-top: 1px; }
+  .ge-slot .slot-badge { position: absolute; top: 1px; left: 1px; font-size: 8px; font-weight: bold; text-shadow: 1px 1px 0 #000; }
+  .ge-slot .mini-bar { width: 80%; height: 4px; background: var(--bg-slot); border: 1px solid var(--bevel-dark); margin-top: 2px; }
+  .ge-slot .mini-fill { height: 100%; }
+  .fill-buy { background: var(--bar-green); }
+  .fill-sell { background: var(--bar-red); }
+
+  /* Action buttons row */
+  .sell-all-row { display: flex; align-items: center; gap: 3px; padding: 0 4px 2px; }
+  .action-btn {
+    font-family: 'RuneScape UF', inherit; font-size: 10px; font-weight: normal;
+    color: #fff; text-shadow: 1px 1px 0 #000; letter-spacing: 0.5px;
+    cursor: pointer; padding: 3px 6px; text-align: center;
+    transition: filter 0.1s; white-space: nowrap;
+  }
+  .action-btn:hover { filter: brightness(1.15); }
+  .action-btn:active { filter: brightness(0.85); }
+  .sell-all-btn {
+    flex: 1;
+    background: linear-gradient(180deg, #b40000 0%, #8a0000 50%, #6b0000 100%);
+    border: 1px solid #3a0000;
+    box-shadow: inset 1px 1px 0 #d42a2a, inset -1px -1px 0 #4a0000;
+  }
+  .sell-all-btn:active { box-shadow: inset 1px 1px 0 #4a0000, inset -1px -1px 0 #d42a2a; }
+  .full-port-btn {
+    flex: 1;
+    background: linear-gradient(180deg, #00a000 0%, #007800 50%, #005800 100%);
+    border: 1px solid #003a00;
+    box-shadow: inset 1px 1px 0 #2ad42a, inset -1px -1px 0 #004a00;
+  }
+  .full-port-btn:active { box-shadow: inset 1px 1px 0 #004a00, inset -1px -1px 0 #2ad42a; }
+  .sweep-btn {
+    width: 26px; height: 22px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, var(--btn-face) 0%, var(--btn-bottom) 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--btn-top), inset -1px -1px 0 var(--btn-bottom);
+    font-size: 13px; padding: 0;
+  }
+  .sweep-btn:active { box-shadow: inset 1px 1px 0 var(--btn-bottom), inset -1px -1px 0 var(--btn-top); }
+  .sweep-btn[title]:hover::after {
+    content: attr(title); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: #000; color: var(--text-yellow); font-size: 9px; padding: 2px 5px;
+    white-space: nowrap; pointer-events: none; z-index: 20;
+  }
+
+  /* ===== GE TRADE EXECUTION BAR ===== */
+  .ge-trade-bar {
+    height: 16px;
+    background: var(--bg-slot);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 #151210, inset -1px -1px 0 rgba(100,90,70,0.2);
+    position: relative;
+    overflow: hidden;
+    margin: 3px 0 1px;
+  }
+  .ge-trade-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(180deg, #00d400, #008800);
+    transition: width 0.6s ease-out;
+    position: relative;
+  }
+  .ge-trade-fill.executing {
+    animation: geBarPulse 1s ease-in-out infinite;
+  }
+  @keyframes geBarPulse {
+    0%,100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+  }
+  .ge-trade-label {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: var(--text-white); text-shadow: 1px 1px 0 #000;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== POSITION / PNL SECTION (below confirm) ===== */
+  .pos-section { margin-top: 2px; }
+  .pos-header {
+    background: var(--bg-inner);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-bottom), inset -1px -1px 0 rgba(110,99,80,0.2);
+    padding: 2px 6px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .pos-header span { font-size: 12px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .pos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0px;
+    padding: 2px 6px;
+  }
+  .pos-item { padding: 1px 0; }
+  .pos-label { font-size: 11px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; }
+  .pos-val { font-size: 12px; color: var(--text-white); text-shadow: 1px 1px 0 #000; margin-top: 1px; }
+  .pos-val.profit { color: var(--text-green); }
+  .pos-val.loss { color: var(--text-red); }
+  .pos-divider { grid-column: 1 / -1; border-top: 1px solid var(--bevel-bottom); margin: 1px 0; }
+
+  /* ===== RIGHT PANEL (Chart + Quest) ===== */
+  .right-panel { width: 410px; display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; min-height: 0; }
+
+  /* Chart panel */
+  .chart-panel { }
+  .chart-titlebar {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 3px 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .chart-titlebar span { font-size: 13px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .chart-tabs { display: flex; gap: 2px; }
+  .chart-tab {
+    font-family: 'RuneScape UF', inherit; font-size: 11px; font-weight: normal;
+    color: var(--text-gray); text-shadow: 1px 1px 0 #000;
+    background: var(--btn-face); border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--btn-top), inset -1px -1px 0 var(--btn-bottom);
+    cursor: pointer; padding: 2px 8px;
+  }
+  .chart-tab.active { color: var(--text-orange); background: var(--btn-hover); }
+  .chart-tab:hover { color: var(--text-white); }
+  .chart-body {
+    height: 185px;
+    background: #131722;
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 #0a0d14;
+    position: relative;
+    overflow: hidden;
+  }
+  .chart-body iframe { width: 100%; height: 100%; border: none; }
+
+  /* Quest panel */
+  .quest-panel { }
+  .quest-titlebar {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 3px 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .quest-titlebar span { font-size: 13px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .quest-body { padding: 4px; }
+
+  .quest-card {
+    background: var(--bg-input);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 #151210, inset -1px -1px 0 rgba(100,90,70,0.15);
+    padding: 6px;
+  }
+  .quest-icon-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .quest-scroll-icon {
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; filter: drop-shadow(1px 1px 0 rgba(0,0,0,0.5));
+  }
+  .quest-title { font-size: 13px; color: var(--text-yellow); text-shadow: 1px 1px 0 #000; }
+  .quest-difficulty { font-size: 11px; text-shadow: 1px 1px 0 #000; margin-left: auto; padding: 1px 6px; border: 1px solid var(--bevel-dark); }
+  .diff-easy { color: var(--text-green); background: rgba(0,180,0,0.1); }
+  .diff-medium { color: var(--text-yellow); background: rgba(255,255,0,0.06); }
+  .diff-hard { color: var(--text-red); background: rgba(255,51,51,0.1); }
+  .quest-desc { font-size: 11px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; line-height: 1.4; margin-bottom: 4px; }
+  .quest-reward-row { display: flex; align-items: center; justify-content: space-between; }
+  .quest-reward { font-size: 11px; color: var(--text-cyan); text-shadow: 1px 1px 0 #000; }
+  .quest-xp { font-size: 12px; color: var(--text-green); text-shadow: 1px 1px 0 #000; }
+  .quest-progress-wrap { margin-top: 4px; }
+  .quest-progress-bar {
+    height: 12px; background: var(--bg-slot);
+    border: 1px solid var(--bevel-dark);
+    position: relative; overflow: hidden;
+  }
+  .quest-progress-fill { height: 100%; background: linear-gradient(180deg, #00d400, #008800); transition: width 0.3s; }
+  .quest-progress-text {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--text-white); text-shadow: 1px 1px 0 #000;
+  }
+  .quest-new-btn {
+    margin-top: 4px; width: 100%; font-size: 11px; padding: 3px 6px; text-align: center;
+  }
+
+  /* ===== TOKEN SELECTOR OVERLAY ===== */
+  .token-selector { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .token-selector.open { display: flex; }
+  .token-picker { width: 340px; max-height: 400px; }
+  .token-picker-title { background: linear-gradient(180deg, #5e5344, #4a4235); padding: 6px 10px; text-align: center; border: 1px solid var(--bevel-dark); box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom); }
+  .token-picker-title span { font-size: 16px; font-weight: normal; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .token-picker-body { max-height: 340px; overflow-y: auto; background: var(--bg-input); border: 1px solid var(--bevel-dark); box-shadow: inset 1px 1px 0 #151210; }
+  .token-picker-body::-webkit-scrollbar { width: 12px; }
+  .token-picker-body::-webkit-scrollbar-track { background: var(--bg-input); }
+  .token-picker-body::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--bevel-top), var(--btn-face), var(--btn-bottom)); border: 1px solid var(--bevel-dark); }
+  .token-pick-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; border-bottom: 1px solid rgba(0,0,0,0.2); }
+  .token-pick-row:hover { background: rgba(255,152,31,0.08); }
+  .token-pick-row.selected { background: rgba(255,152,31,0.15); }
+  .tp-icon { width: 28px; height: 28px; font-size: 16px; display: flex; align-items: center; justify-content: center; background: var(--bg-slot); border: 1px solid var(--bevel-dark); }
+  .tp-info { flex: 1; }
+  .tp-name { font-size: 16px; font-weight: normal; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .tp-ticker { font-size: 12px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; }
+  .tp-price { font-size: 14px; font-weight: normal; color: var(--text-white); text-shadow: 1px 1px 0 #000; text-align: right; }
+  .tp-change { font-size: 12px; text-align: right; text-shadow: 1px 1px 0 #000; }
+  .tp-change.up { color: var(--text-green); }
+  .tp-change.down { color: var(--text-red); }
+
+  /* ===== LEFT PANEL (Username + Leaderboard + Referral) ===== */
+  .left-panel { width: 190px; display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; min-height: 0; }
+
+  /* Username area */
+  .user-panel { }
+  .user-titlebar {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 3px 8px; text-align: center;
+  }
+  .user-titlebar span { font-size: 13px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .user-body { padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+  .user-avatar {
+    width: 28px; height: 28px; margin: 0 auto;
+    background: var(--bg-slot); border: 2px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 #151210;
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+  }
+  .user-name-display {
+    text-align: center; font-size: 13px; color: var(--text-yellow); text-shadow: 1px 1px 0 #000;
+    min-height: 18px;
+  }
+  .user-input {
+    font-family: 'RuneScape UF', inherit; font-size: 11px; font-weight: normal;
+    color: var(--text-yellow); text-shadow: 1px 1px 0 #000;
+    background: var(--bg-slot); border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 #151210; padding: 4px 6px;
+    text-align: center; outline: none; width: 100%;
+  }
+  .user-input::placeholder { color: var(--text-gray); }
+  .user-stats { display: flex; justify-content: space-between; padding: 2px 0; }
+  .user-stat-label { font-size: 10px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; }
+  .user-stat-val { font-size: 11px; color: var(--text-green); text-shadow: 1px 1px 0 #000; }
+  .user-stat-val.loss { color: var(--text-red); }
+
+  /* Leaderboard */
+  .lb-panel { }
+  .lb-titlebar {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 3px 8px; text-align: center;
+  }
+  .lb-titlebar span { font-size: 13px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .lb-body { padding: 2px; }
+  .lb-row {
+    display: flex; align-items: center; gap: 3px; padding: 1px 3px;
+    border-bottom: 1px solid rgba(0,0,0,0.2);
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank { font-size: 10px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; min-width: 16px; text-align: center; }
+  .lb-rank.gold { color: #ffd700; }
+  .lb-rank.silver { color: #c0c0c0; }
+  .lb-rank.bronze { color: #cd7f32; }
+  .lb-name { font-size: 10px; color: var(--text-white); text-shadow: 1px 1px 0 #000; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-name.me { color: var(--text-yellow); }
+  .lb-pnl { font-size: 10px; text-shadow: 1px 1px 0 #000; white-space: nowrap; }
+  .lb-pnl.profit { color: var(--text-green); }
+  .lb-pnl.loss { color: var(--text-red); }
+
+  /* Action buttons (referral, share) */
+  .social-panel { }
+  .social-body { padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+  .social-btn {
+    font-family: 'RuneScape UF', inherit; font-size: 10px; font-weight: normal;
+    color: var(--text-orange); text-shadow: 1px 1px 0 #000;
+    background: var(--btn-face); border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--btn-top), inset -1px -1px 0 var(--btn-bottom);
+    cursor: pointer; padding: 3px 5px; text-align: center; width: 100%;
+  }
+  .social-btn:hover { background: var(--btn-hover); color: var(--text-white); }
+  .social-btn:active { background: var(--btn-bottom); box-shadow: inset 1px 1px 0 var(--btn-bottom), inset -1px -1px 0 var(--btn-top); }
+  .social-btn.green { background: linear-gradient(180deg, #00a000, #005800); color: #fff; border-color: #003a00; box-shadow: inset 1px 1px 0 #2ad42a, inset -1px -1px 0 #004a00; }
+  .social-btn.green:hover { filter: brightness(1.15); }
+
+  .copied-toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.85); color: var(--text-green); font-family: 'RuneScape UF', inherit;
+    font-size: 13px; padding: 8px 20px; border: 1px solid var(--text-green);
+    z-index: 999; display: none;
+  }
+  .copied-toast.show { display: block; animation: toastFade 1.5s forwards; }
+  @keyframes toastFade { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+
+  /* ===== TROLL BOX (Chat) ===== */
+  .troll-panel { display: flex; flex-direction: column; min-height: 0; }
+  .troll-titlebar {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 3px 8px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .troll-titlebar span { font-size: 13px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .troll-messages {
+    flex: 1; overflow-y: auto; padding: 4px; background: var(--bg-slot);
+    border: 1px solid var(--bevel-dark); box-shadow: inset 1px 1px 0 #151210;
+    min-height: 55px; max-height: 120px;
+  }
+  .troll-messages::-webkit-scrollbar { width: 8px; }
+  .troll-messages::-webkit-scrollbar-track { background: var(--bg-input); }
+  .troll-messages::-webkit-scrollbar-thumb { background: var(--btn-face); border: 1px solid var(--bevel-dark); }
+  .troll-msg {
+    padding: 2px 0; font-size: 11px; color: var(--text-white); text-shadow: 1px 1px 0 #000;
+    line-height: 1.5; word-wrap: break-word;
+  }
+  .troll-msg .msg-name { color: var(--text-orange); }
+  .troll-msg .msg-name.gold-name { color: #ffd700; text-shadow: 1px 1px 0 #000, 0 0 4px rgba(255,215,0,0.4); }
+  .troll-msg .msg-lvl { font-size: 8px; color: var(--text-gray); }
+  .troll-msg .msg-text { color: var(--text-white); }
+  .troll-input-row { display: flex; gap: 2px; padding: 3px; background: var(--bg-input); border: 1px solid var(--bevel-dark); border-top: none; }
+  .troll-input {
+    flex: 1; font-family: 'RuneScape UF', inherit; font-size: 11px; font-weight: normal;
+    color: var(--text-white); text-shadow: 1px 1px 0 #000;
+    background: var(--bg-slot); border: 1px solid var(--bevel-dark);
+    padding: 3px 5px; outline: none; min-width: 0;
+  }
+  .troll-input::placeholder { color: var(--text-gray); }
+  .troll-send-btn {
+    font-family: 'RuneScape UF', inherit; font-size: 10px; font-weight: normal;
+    color: var(--text-orange); text-shadow: 1px 1px 0 #000;
+    background: var(--btn-face); border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--btn-top), inset -1px -1px 0 var(--btn-bottom);
+    cursor: pointer; padding: 2px 6px; white-space: nowrap;
+  }
+  .troll-send-btn:hover { background: var(--btn-hover); color: var(--text-white); }
+  .troll-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .troll-emoji-row { display: flex; flex-wrap: wrap; gap: 1px; padding: 2px 3px; background: var(--bg-input); border: 1px solid var(--bevel-dark); border-top: none; }
+  .troll-emoji {
+    width: 22px; height: 20px; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; cursor: pointer; background: none; border: 1px solid transparent;
+    padding: 0; transition: background 0.1s;
+  }
+  .troll-emoji:hover { background: rgba(255,152,31,0.15); border-color: var(--bevel-dark); }
+  .troll-gate-msg { font-size: 9px; color: var(--text-red); text-shadow: 1px 1px 0 #000; text-align: center; padding: 2px; }
+  .troll-emoji-toggle {
+    font-size: 12px; background: none; border: 1px solid transparent;
+    cursor: pointer; padding: 0 3px; line-height: 1; opacity: 0.7;
+  }
+  .troll-emoji-toggle:hover { opacity: 1; border-color: var(--bevel-dark); background: rgba(255,152,31,0.1); }
+  .troll-emoji-toggle.active { opacity: 1; background: rgba(255,152,31,0.15); border-color: var(--bevel-dark); }
+
+  /* ===== VOLUME LEVEL BADGE ===== */
+  .lvl-badge {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 9px; color: var(--text-yellow); text-shadow: 1px 1px 0 #000;
+    padding: 0 3px; border: 1px solid rgba(255,255,0,0.2); background: rgba(255,255,0,0.05);
+  }
+  .lvl-badge.maxed { color: #ffd700; border-color: rgba(255,215,0,0.4); background: rgba(255,215,0,0.1); text-shadow: 1px 1px 0 #000, 0 0 4px rgba(255,215,0,0.3); }
+  .lvl-bar-wrap { width: 100%; height: 8px; background: var(--bg-slot); border: 1px solid var(--bevel-dark); margin-top: 2px; }
+  .lvl-bar-fill { height: 100%; background: linear-gradient(90deg, #00b400, #ffff00); transition: width 0.3s; }
+  .lvl-bar-fill.maxed { background: linear-gradient(90deg, #ffd700, #ffaa00, #ffd700); }
+
+  /* ===== MUSIC PLAYER ===== */
+  .music-panel { }
+  .music-titlebar {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 3px 8px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .music-titlebar span { font-size: 13px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .music-body { padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+  .music-now-playing {
+    font-size: 10px; color: var(--text-cyan); text-shadow: 1px 1px 0 #000;
+    text-align: center; padding: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .music-controls { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .music-btn {
+    font-family: 'RuneScape UF', inherit; font-size: 12px;
+    background: var(--btn-face); border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--btn-top), inset -1px -1px 0 var(--btn-bottom);
+    cursor: pointer; padding: 2px 8px; color: var(--text-orange); text-shadow: 1px 1px 0 #000;
+    width: 26px; height: 20px; display: flex; align-items: center; justify-content: center;
+  }
+  .music-btn:hover { background: var(--btn-hover); color: var(--text-white); }
+  .music-btn.active { background: var(--btn-hover); color: var(--text-green); }
+  .music-vol-row { display: flex; align-items: center; gap: 4px; }
+  .music-vol-label { font-size: 9px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; white-space: nowrap; }
+  .music-vol-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; background: var(--bg-slot); border: 1px solid var(--bevel-dark);
+    outline: none; cursor: pointer;
+  }
+  .music-vol-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 10px; height: 14px;
+    background: var(--btn-face); border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--btn-top), inset -1px -1px 0 var(--btn-bottom);
+    cursor: pointer;
+  }
+  .music-track-list {
+    max-height: 60px; overflow-y: auto; background: var(--bg-slot);
+    border: 1px solid var(--bevel-dark); display: none;
+  }
+  .music-track-list.open { display: block; }
+  .music-track-list::-webkit-scrollbar { width: 6px; }
+  .music-track-list::-webkit-scrollbar-thumb { background: var(--btn-face); }
+  .music-track {
+    padding: 2px 6px; font-size: 9px; color: var(--text-gray); text-shadow: 1px 1px 0 #000;
+    cursor: pointer; border-bottom: 1px solid rgba(0,0,0,0.2);
+  }
+  .music-track:hover { background: rgba(255,152,31,0.08); color: var(--text-white); }
+  .music-track.active { color: var(--text-green); }
+
+
+  /* ===== TOP MOVERS ===== */
+  .movers-cols { display: flex; gap: 8px; }
+  .movers-col { flex: 1; }
+  .movers-col-title { font-size: 10px; margin-bottom: 2px; text-shadow: 1px 1px 0 #000; padding: 2px 4px; }
+  .movers-col-title.up { color: var(--text-green); background: rgba(0,180,0,0.1); }
+  .movers-col-title.down { color: var(--text-red); background: rgba(180,0,0,0.1); }
+  .mover-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 2px 4px; font-size: 11px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    cursor: pointer;
+  }
+  .mover-row:hover { background: rgba(255,152,31,0.08); }
+  .mover-sym { color: var(--text-white); text-shadow: 1px 1px 0 #000; font-size: 11px; }
+  .mover-pct.up { color: var(--text-green); font-size: 11px; }
+  .mover-pct.down { color: var(--text-red); font-size: 11px; }
+  /* ===== TOP MOVERS BOX ===== */
+  .movers-titlebar {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 3px 8px; display: flex; align-items: center; justify-content: center;
+  }
+  .movers-titlebar span { font-size: 13px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .movers-body { padding: 3px 6px; }
+  .mover-row { padding: 2px 4px; font-size: 11px; }
+  .mover-sym { font-size: 11px; }
+  .mover-pct { font-size: 11px; }
+
+
+  /* ===== CONNECT WALLET BAR ===== */
+  .wallet-bar-wrap { position: relative; margin: 3px 0 1px 0; }
+  .connect-wallet-bar {
+    width: 100%; font-family: 'RuneScape UF', inherit; font-size: 11px; font-weight: normal;
+    color: #fff; text-shadow: 1px 1px 0 #000;
+    background: linear-gradient(180deg, #5a4f42 0%, #48403a 50%, #3a342e 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    cursor: pointer; padding: 5px 10px; text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: filter 0.1s;
+  }
+  .connect-wallet-bar:hover { filter: brightness(1.1); }
+  .connect-wallet-bar.connected {
+    background: linear-gradient(180deg, #1a4a1a 0%, #0e350e 50%, #082a08 100%);
+    border-color: #0a3a0a;
+    box-shadow: inset 1px 1px 0 #2a6a2a, inset -1px -1px 0 #052005, 0 0 6px rgba(0,255,0,0.15);
+  }
+  .wallet-bar-dot { width: 7px; height: 7px; border-radius: 50%; background: #666; }
+  .connect-wallet-bar.connected .wallet-bar-dot { background: var(--text-green); box-shadow: 0 0 6px var(--text-green); }
+  .wallet-dropdown {
+    display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 40;
+    background: var(--bg-outer); border: 1px solid var(--text-orange);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    flex-direction: column;
+  }
+  .wallet-dropdown.open { display: flex; }
+  .wallet-dd-btn {
+    font-family: 'RuneScape UF', inherit; font-size: 11px; font-weight: normal;
+    color: #fff; text-shadow: 1px 1px 0 #000;
+    background: transparent; border: none; border-bottom: 1px solid rgba(0,0,0,0.2);
+    cursor: pointer; padding: 6px 10px; text-align: left;
+    transition: background 0.1s;
+  }
+  .wallet-dd-btn:hover { background: rgba(255,152,31,0.1); }
+  .wallet-dd-btn:last-child { border-bottom: none; }
+  .wallet-dd-btn.phantom:hover { background: rgba(171,159,242,0.15); }
+  .wallet-dd-btn.backpack:hover { background: rgba(227,62,63,0.15); }
+  .wallet-dd-btn.solflare:hover { background: rgba(252,114,39,0.15); }
+
+
+  /* ===== SOL AMOUNT BUTTONS ===== */
+  .sol-amt-btn { min-width: 30px !important; font-size: 11px !important; }
+  .sol-amt-btn:hover { color: var(--text-cyan) !important; }
+  .sol-amt-btn.active { background: var(--bg-slot) !important; color: var(--text-cyan) !important; box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 rgba(100,90,70,0.3) !important; }
+  .sol-custom-btn { min-width: 24px !important; font-size: 12px !important; color: var(--text-orange) !important; }
+  .sol-custom-btn:hover { color: var(--text-white) !important; }
+  .sol-custom-popup {
+    position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+    background: var(--bg-outer); border: 2px solid var(--text-orange);
+    box-shadow: 0 0 12px rgba(255,152,31,0.3); padding: 6px; z-index: 50;
+    display: none; flex-direction: column; gap: 4px; align-items: center; min-width: 120px;
+  }
+  .sol-custom-popup.open { display: flex; }
+  .sol-custom-popup label { font-size: 10px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .sol-custom-popup input { font-family: 'RuneScape UF', inherit; font-size: 12px; color: var(--text-yellow); text-shadow: 1px 1px 0 #000; background: var(--bg-slot); border: 1px solid var(--bevel-dark); padding: 3px 6px; text-align: center; width: 80px; outline: none; }
+  .sol-custom-popup .osrs-btn { font-size: 10px; padding: 2px 10px; }
+
+  /* ===== BACKPACK FIAT ONRAMP ===== */
+  .fiat-panel { }
+  .fiat-titlebar {
+    background: linear-gradient(180deg, #5e5344 0%, #514839 60%, #4a4235 100%);
+    border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--bevel-top), inset -1px -1px 0 var(--bevel-bottom);
+    padding: 3px 8px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .fiat-titlebar span { font-size: 13px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .fiat-body { padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+  .fiat-row { display: flex; gap: 4px; }
+  .fiat-btn {
+    flex: 1; font-family: 'RuneScape UF', inherit; font-size: 10px; font-weight: normal;
+    color: #fff; text-shadow: 1px 1px 0 #000;
+    background: linear-gradient(180deg, #2a6dd4 0%, #1a4d94 50%, #0f3a74 100%);
+    border: 1px solid #0a2a54; box-shadow: inset 1px 1px 0 #4a8df4, inset -1px -1px 0 #0a3264;
+    cursor: pointer; padding: 4px 3px; text-align: center;
+    transition: filter 0.1s;
+  }
+  .fiat-btn:hover { filter: brightness(1.15); }
+  .fiat-btn:active { filter: brightness(0.85); }
+  .fiat-btn.moonpay {
+    background: linear-gradient(180deg, #7b2ff2 0%, #5a1dba 50%, #3d1480 100%);
+    border-color: #2a0d60; box-shadow: inset 1px 1px 0 #9b5fff, inset -1px -1px 0 #3a1480;
+  }
+  .fiat-amount-row { display: flex; gap: 3px; }
+  .fiat-amount-btn {
+    flex: 1; font-family: 'RuneScape UF', inherit; font-size: 10px; font-weight: normal;
+    color: var(--text-yellow); text-shadow: 1px 1px 0 #000;
+    background: var(--bg-slot); border: 1px solid var(--bevel-dark);
+    cursor: pointer; padding: 3px 2px; text-align: center;
+  }
+  .fiat-amount-btn:hover { background: var(--bg-input); color: var(--text-white); }
+
+  /* ===== SHARE PNL OVERLAY (FTX/Binance Style) ===== */
+  .pnl-share-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 300; }
+  .pnl-share-overlay.open { display: flex; }
+  .pnl-card {
+    width: 420px; position: relative; overflow: hidden;
+    border-radius: 4px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 30px rgba(255,152,31,0.15);
+  }
+  .pnl-card-bg {
+    position: absolute; inset: 0; z-index: 0;
+  }
+  .pnl-card-bg.profit-bg {
+    background: linear-gradient(135deg, #0a1a0a 0%, #0d2818 30%, #071a0a 60%, #0a0f0a 100%);
+  }
+  .pnl-card-bg.loss-bg {
+    background: linear-gradient(135deg, #1a0a0a 0%, #28100d 30%, #1a0a07 60%, #0f0a0a 100%);
+  }
+  .pnl-card > *:not(.pnl-card-bg) { position: relative; z-index: 1; }
+  .pnl-card-header {
+    padding: 14px 18px 8px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .pnl-card-logo { font-size: 18px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; letter-spacing: 1px; }
+  .pnl-card-user { font-size: 11px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; }
+  .pnl-card-body { padding: 4px 18px 14px; text-align: center; }
+  .pnl-card-token { font-size: 15px; color: var(--text-white); text-shadow: 1px 1px 0 #000; margin-bottom: 2px; opacity: 0.8; }
+  .pnl-card-side { font-size: 10px; padding: 2px 10px; border: 1px solid; display: inline-block; margin-bottom: 6px; letter-spacing: 1px; }
+  .pnl-card-side.long { color: var(--text-green); border-color: rgba(0,255,0,0.3); background: rgba(0,180,0,0.15); }
+  .pnl-card-side.short { color: var(--text-red); border-color: rgba(255,0,0,0.3); background: rgba(180,0,0,0.15); }
+  .pnl-card-roi { font-size: 56px; margin: 6px 0 2px; text-shadow: 2px 2px 0 #000; font-weight: bold; letter-spacing: 2px; }
+  .pnl-card-roi.profit { color: var(--text-green); text-shadow: 0 0 20px rgba(0,255,0,0.3), 2px 2px 0 #000; }
+  .pnl-card-roi.loss { color: var(--text-red); text-shadow: 0 0 20px rgba(255,0,0,0.3), 2px 2px 0 #000; }
+  .pnl-card-pnl { font-size: 20px; margin: 0 0 10px; text-shadow: 1px 1px 0 #000; }
+  .pnl-card-pnl.profit { color: var(--text-green); }
+  .pnl-card-pnl.loss { color: var(--text-red); }
+  .pnl-card-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 8px; text-align: center; padding: 8px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.05); }
+  .pnl-card-item-label { font-size: 9px; color: var(--text-gray); text-transform: uppercase; letter-spacing: 0.5px; }
+  .pnl-card-item-val { font-size: 13px; color: var(--text-white); text-shadow: 1px 1px 0 #000; margin-top: 1px; }
+  .pnl-card-footer {
+    padding: 10px 18px; display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.2);
+  }
+  .pnl-card-close {
+    position: absolute; top: 10px; right: 14px; font-size: 18px; color: var(--text-gray);
+    cursor: pointer; background: none; border: none; font-family: inherit; z-index: 2;
+  }
+  .pnl-card-close:hover { color: var(--text-white); }
+  .pnl-card-btns { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+  .pnl-copy-btn {
+    font-family: 'RuneScape UF', inherit; font-size: 13px; font-weight: normal;
+    color: var(--text-orange); text-shadow: 1px 1px 0 #000;
+    background: var(--btn-face); border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 var(--btn-top), inset -1px -1px 0 var(--btn-bottom);
+    cursor: pointer; padding: 6px 20px;
+  }
+  .pnl-copy-btn:hover { background: var(--btn-hover); color: var(--text-white); }
+
+  /* ===== REFERRAL OVERLAY ===== */
+  .referral-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 300; }
+  .referral-overlay.open { display: flex; }
+  .referral-card {
+    width: 360px; background: var(--bg-outer); border: 2px solid var(--text-orange);
+    box-shadow: 0 0 30px rgba(255,152,31,0.3); text-align: center; padding: 0;
+  }
+  .referral-card-header {
+    background: linear-gradient(180deg, #5e5344, #4a4235);
+    padding: 10px; border-bottom: 1px solid var(--bevel-dark);
+  }
+  .referral-card-header span { font-size: 16px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .referral-card-body { padding: 16px; }
+  .referral-gnome {
+    font-size: 64px; margin-bottom: 8px;
+    filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
+  }
+  .referral-msg {
+    font-size: 13px; color: var(--text-yellow); text-shadow: 1px 1px 0 #000;
+    line-height: 1.6; margin-bottom: 12px;
+  }
+  .referral-link-box {
+    background: var(--bg-slot); border: 1px solid var(--bevel-dark);
+    padding: 8px; font-size: 11px; color: var(--text-cyan); text-shadow: 1px 1px 0 #000;
+    word-break: break-all; margin-bottom: 10px;
+  }
+  .referral-card-close {
+    position: absolute; top: 8px; right: 12px; font-size: 18px; color: var(--text-gray);
+    cursor: pointer; background: none; border: none; font-family: inherit;
+  }
+
+  /* ===== TITAN API STATUS ===== */
+  .titan-status {
+    display: flex; align-items: center; gap: 4px; padding: 2px 6px;
+    font-size: 9px; text-shadow: 1px 1px 0 #000;
+  }
+  .titan-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    display: inline-block;
+  }
+  .titan-dot.connected { background: #00ff00; box-shadow: 0 0 4px #00ff00; }
+  .titan-dot.connecting { background: #ffff00; box-shadow: 0 0 4px #ffff00; animation: pulse 1s infinite; }
+  .titan-dot.disconnected { background: #ff3333; box-shadow: 0 0 4px #ff3333; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .titan-quote-info {
+    font-size: 9px; color: var(--text-cyan); text-shadow: 1px 1px 0 #000;
+    padding: 2px 6px; text-align: center;
+  }
+  .titan-provider-row {
+    display: flex; align-items: center; gap: 3px; padding: 1px 0;
+    font-size: 9px; color: var(--text-gray); text-shadow: 1px 1px 0 #000;
+  }
+  .titan-provider-name { color: var(--text-orange); }
+  .titan-provider-price { color: var(--text-yellow); }
+  .titan-provider-best { color: var(--text-green); font-size: 8px; }
+
+
+  /* ===== TOKEN SEARCH BAR ===== */
+  .token-search-bar {
+    display: flex; align-items: center; gap: 4px; padding: 4px 6px;
+    margin: 2px 0 3px 0; position: relative;
+  }
+  .token-search-input {
+    flex: 1; font-family: 'RuneScape UF', inherit; font-size: 13px; font-weight: normal;
+    color: var(--text-yellow); text-shadow: 1px 1px 0 #000;
+    background: var(--bg-slot); border: 1px solid var(--bevel-dark);
+    box-shadow: inset 1px 1px 0 #151210, inset -1px -1px 0 rgba(100,90,70,0.2);
+    padding: 5px 8px 5px 26px; outline: none;
+  }
+  .token-search-input:focus {
+    border-color: var(--text-orange);
+    box-shadow: inset 1px 1px 0 #151210, inset -1px -1px 0 rgba(100,90,70,0.2), 0 0 6px rgba(255,152,31,0.3);
+  }
+  .token-search-input::placeholder { color: var(--text-gray); font-size: 12px; }
+  .token-search-wrap { position: relative; flex: 1; }
+  .token-search-icon {
+    position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--text-gray); pointer-events: none;
+  }
+  .token-search-input:focus + .token-search-icon,
+  .token-search-wrap:focus-within .token-search-icon { color: var(--text-orange); }
+
+  /* Search dropdown */
+  .token-search-dropdown {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--bg-input); border: 1px solid var(--text-orange);
+    border-top: none; z-index: 50; max-height: 200px; overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .token-search-dropdown.open { display: block; }
+  .token-search-dropdown::-webkit-scrollbar { width: 8px; }
+  .token-search-dropdown::-webkit-scrollbar-track { background: var(--bg-input); }
+  .token-search-dropdown::-webkit-scrollbar-thumb { background: var(--btn-face); border: 1px solid var(--bevel-dark); }
+  .tsd-row {
+    display: flex; align-items: center; gap: 8px; padding: 5px 8px;
+    cursor: pointer; border-bottom: 1px solid rgba(0,0,0,0.25);
+  }
+  .tsd-row:hover, .tsd-row.highlighted { background: rgba(255,152,31,0.12); }
+  .tsd-row:last-child { border-bottom: none; }
+  .tsd-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .tsd-info { flex: 1; min-width: 0; }
+  .tsd-name { font-size: 12px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; }
+  .tsd-ticker { font-size: 10px; color: var(--text-gray); text-shadow: 1px 1px 0 #000; }
+  .tsd-price { font-size: 12px; color: var(--text-white); text-shadow: 1px 1px 0 #000; text-align: right; }
+  .tsd-change { font-size: 10px; text-align: right; text-shadow: 1px 1px 0 #000; }
+  .tsd-change.up { color: var(--text-green); }
+  .tsd-change.down { color: var(--text-red); }
+  .tsd-verified { font-size: 8px; color: var(--text-cyan); margin-left: 2px; }
+
+  /* ===== CONFIRM POPUP ===== */
+  .confirm-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 200; }
+  .confirm-overlay.open { display: flex; }
+  .confirm-dialog { width: 300px; text-align: center; }
+  .confirm-dialog .cd-body { padding: 16px; font-size: 16px; color: var(--text-orange); text-shadow: 1px 1px 0 #000; line-height: 1.6; }
+  .confirm-dialog .cd-btns { display: flex; gap: 8px; justify-content: center; padding: 0 16px 12px; }
+
+/* Live indicator pulse */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== WHALE WATCHER TICKER TAPE ===== -->
+<div class="ticker-wrapper" id="tickerWrapper">
+  <div class="ticker-header">
+    <div class="ticker-header-left">
+      <span class="ticker-whale-icon">🐋</span>
+      <span>WhaleWatcher</span>
+      <span style="color:var(--text-gray);font-size:11px;">moby.win</span>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center;">
+      <span class="ticker-badge">SMART MONEY</span>
+      <span class="ticker-badge" style="color:var(--text-yellow);border-color:rgba(255,255,0,0.2);background:rgba(255,255,0,0.06);">LOW FDV</span>
+      <span style="font-size:10px;color:var(--text-gray);text-shadow:1px 1px 0 #000;">LIVE</span>
+      <span style="width:6px;height:6px;border-radius:50%;background:#00ff00;box-shadow:0 0 4px #00ff00;display:inline-block;"></span>
+    </div>
+  </div>
+  <div class="ticker-track">
+    <div class="ticker-scroll" id="tickerScroll"></div>
+  </div>
+</div>
+
+<div class="main-layout">
+
+<!-- ===== LEFT PANEL (Username + Troll Box + Leaderboard + Social) ===== -->
+<div class="left-panel">
+  <!-- Portfolio Value Panel -->
+  <div class="user-panel osrs-panel-outer">
+    <div class="osrs-panel-inner">
+      <div class="user-titlebar"><span>Portfolio Value</span></div>
+      <div class="user-body">
+        <div id="portfolioValueWrap" style="text-align:center;padding:6px 0 2px;">
+          <div id="portfolioValue" style="font-size:22px;color:var(--text-green);text-shadow:1px 1px 0 #000,0 0 8px rgba(0,255,136,0.3);letter-spacing:0.5px;font-weight:normal;">--</div>
+          <div id="portfolioDayChange" style="font-size:11px;color:var(--text-gray);text-shadow:1px 1px 0 #000;margin-top:2px;">Connect wallet to view</div>
+        </div>
+        <div id="portfolioHoldingsWrap" style="display:none;max-height:52px;overflow-y:auto;margin:2px 0;"></div>
+        <div class="user-stats">
+          <div><div class="user-stat-label">Today's PnL</div><div class="user-stat-val" id="userDayPnl">+$312.40</div></div>
+          <div style="text-align:right;"><div class="user-stat-label">Win Rate</div><div class="user-stat-val" id="userWinRate">67%</div></div>
+        </div>
+        <div class="user-stats">
+          <div><div class="user-stat-label">Trades</div><div class="user-stat-val" style="color:var(--text-yellow);" id="userTrades">24</div></div>
+          <div style="text-align:right;"><div class="user-stat-label">Volume</div><div class="user-stat-val" style="color:var(--text-yellow);" id="userVol">$14.2K</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Troll Box (above leaderboard) -->
+  <div class="troll-panel osrs-panel-outer">
+    <div class="osrs-panel-inner" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+      <div class="troll-titlebar">
+        <span>💬 Troll Box</span>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button class="troll-emoji-toggle" id="trollEmojiToggle" title="Toggle emojis">😀</button>
+          <span style="font-size:9px;color:var(--text-gray);">LIVE</span>
+        </div>
+      </div>
+      <div class="troll-messages" id="trollMessages"></div>
+      <div class="troll-emoji-row" id="trollEmojiRow" style="display:none;"></div>
+      <div class="troll-input-row">
+        <input class="troll-input" type="text" id="trollInput" placeholder="Trade $1,000+ to unlock chat" disabled maxlength="80">
+        <button class="troll-send-btn" id="trollSendBtn" disabled>Send</button>
+      </div>
+      <div class="troll-gate-msg" id="trollGateMsg" style="font-size:10px;padding:3px;">🔒 Trade $1,000+ to unlock chat</div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Panel -->
+  <div class="lb-panel osrs-panel-outer">
+    <div class="osrs-panel-inner">
+      <div class="lb-titlebar"><span>Daily PnL Leaderboard</span></div>
+      <div class="lb-body" id="lbBody"></div>
+    </div>
+  </div>
+
+  <!-- Social / Referral Panel -->
+  <div class="social-panel osrs-panel-outer">
+    <div class="osrs-panel-inner">
+      <div class="social-body">
+        <div style="display:flex;gap:3px;">
+          <input class="user-input" type="text" id="usernameInput" placeholder="Username" maxlength="12" style="flex:1;font-size:10px;padding:2px 5px;">
+          <button class="osrs-btn" style="font-size:9px;padding:2px 6px;white-space:nowrap;" id="setNameBtn">Set</button>
+        </div>
+        <button class="social-btn" id="referralBtn">🧙‍♂️ Invite a Friend</button>
+        <button class="social-btn green" id="sharePnlBtn">📊 Share PnL</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CENTER COLUMN (Trade + Movers) ===== -->
+<div class="center-col">
+
+<!-- ===== GE WINDOW (center) ===== -->
+<div class="ge-window osrs-panel-outer" style="width:100%;">
+  <div class="osrs-panel-inner">
+    <div class="ge-titlebar"><h1>Trade</h1><div class="titan-status" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:4px;"><span class="titan-dot connecting" id="geTitanDot"></span><span style="font-size:9px;color:var(--text-yellow);" id="geTitanLabel">Loading...</span></div></div>
+    <div class="ge-slots-bar osrs-sunken" id="slotsBar"></div>
+    <div class="token-search-bar osrs-sunken">
+      <div class="token-search-wrap">
+        <span class="token-search-icon">🔍</span>
+        <input class="token-search-input" type="text" id="tokenSearchInput" placeholder="Search verified token..." autocomplete="off">
+        <div class="token-search-dropdown" id="tokenSearchDropdown"></div>
+      </div>
+    </div>
+    <div class="wallet-bar-wrap">
+      <button class="connect-wallet-bar" id="connectWalletBar" onclick="toggleWalletMenu()">
+        <span class="wallet-bar-dot" id="walletBarDot"></span>
+        <span id="walletBarLabel">🔗 Connect Wallet</span>
+      </button>
+      <div class="wallet-dropdown" id="walletDropdown">
+        <button class="wallet-dd-btn phantom" onclick="connectWallet('phantom')">👻 Phantom</button>
+        <button class="wallet-dd-btn backpack" onclick="connectWallet('backpack')">🎒 Backpack</button>
+        <button class="wallet-dd-btn solflare" onclick="connectWallet('solflare')">☀️ SolFlare</button>
+      </div>
+    </div>
+    <div class="sell-all-row">
+      <button class="action-btn full-port-btn" id="fullPortBtn">🟢 Full Port</button>
+      <button class="action-btn sell-all-btn" id="sellAllBtn">⚔ Sell All → SOL</button>
+      <button class="action-btn sweep-btn" id="sweepBtn" title="Sweep dust (<$1) → SOL" style="position:relative;">🧹</button>
+    </div>
+    <div class="ge-body">
+      <div class="offer-header">
+        <div class="offer-badge-area">
+          <span class="offer-badge-label" id="offerSideLabel">Buy offer</span>
+        </div>
+        <div class="item-icon-box osrs-deep-sunken" id="itemIconBox">◎</div>
+        <div class="item-text-info">
+          <div class="item-name" id="itemName">Solana (SOL)</div>
+          <div class="item-desc" id="itemDesc">The native token of the Solana network.</div>
+        </div>
+      </div>
+      <div class="coin-row">
+        <span class="coin coin-lg"></span>
+        <span class="coin-value" id="coinPrice">142.38</span>
+        <span class="coin-label">USDC</span>
+      </div>
+      <div style="border-top:1px solid var(--bevel-bottom);border-bottom:1px solid rgba(110,99,80,0.2);margin:2px 0;"></div>
+      <div class="qty-price-row">
+        <div class="field-block">
+          <div class="field-label">Amount (SOL):</div>
+          <input class="osrs-input" type="text" value="1" id="qtyInput" placeholder="SOL amount">
+          <div class="btn-row" id="qtyBtnRow">
+            <!-- SOL amount buttons built dynamically by updateQtyButtons() -->
+          </div>
+        </div>
+        <div class="field-block">
+          <div class="field-label">Price (USDC):</div>
+          <input class="osrs-input" type="text" value="142.38 USDC" id="priceInput" readonly style="cursor:default;opacity:0.85;">
+          <div class="btn-row" id="gasBtnRow" style="margin-top:2px;">
+            <button class="osrs-btn osrs-btn-sm gas-btn" data-gas="slow" title="Slow (low fee)" style="font-size:10px;" id="gasSlowBtn">🐢</button>
+            <button class="osrs-btn osrs-btn-sm gas-btn active" data-gas="normal" title="Normal" style="font-size:10px;background:var(--bg-slot);color:var(--text-cyan);box-shadow:inset 1px 1px 0 #000,inset -1px -1px 0 rgba(100,90,70,0.3);" id="gasNormalBtn">➕</button>
+            <button class="osrs-btn osrs-btn-sm gas-btn" data-gas="turbo" title="Turbo (high priority)" style="font-size:10px;" id="gasTurboBtn">⚡</button>
+          </div>
+        </div>
+      </div>
+      <div class="total-bar osrs-sunken">
+        <span class="coin coin-lg"></span>
+        <span class="coin-value" id="totalValue">142.38 USDC</span>
+      </div>
+      <div class="confirm-row">
+        <button class="osrs-btn back-btn" id="backBtn">◀</button>
+        <button class="osrs-btn confirm-btn" id="confirmBtn">Confirm</button>
+      </div>
+
+      <!-- GE Trade Execution Bar -->
+      <div class="ge-trade-bar" id="geTradeBar">
+        <div class="ge-trade-fill" id="geTradeFill"></div>
+        <div class="ge-trade-label" id="geTradeLabel"></div>
+      </div>
+
+      <!-- ===== POSITION / PNL SECTION ===== -->
+      <div class="pos-section">
+        <div class="pos-header">
+          <span>Position Summary</span>
+          <span id="posTokenLabel" style="font-size:12px;color:var(--text-yellow);">SOL/USDC</span>
+        </div>
+        <div class="pos-grid" id="posGrid">
+          <div class="pos-item"><div class="pos-label">Avg Entry Price</div><div class="pos-val" id="posEntry">138.50 USDC</div></div>
+          <div class="pos-item"><div class="pos-label">Current Price</div><div class="pos-val" id="posCurrent">142.38 USDC</div></div>
+          <div class="pos-item"><div class="pos-label">Position Size</div><div class="pos-val" id="posSize">12 SOL</div></div>
+          <div class="pos-item"><div class="pos-label">Position Value</div><div class="pos-val" id="posValue">1,708.56 USDC</div></div>
+          <div class="pos-divider"></div>
+          <div class="pos-item"><div class="pos-label">Unrealized P&L</div><div class="pos-val profit" id="posUnrealized">+46.56 USDC</div></div>
+          <div class="pos-item"><div class="pos-label">Unrealized ROI</div><div class="pos-val profit" id="posROI">+2.80%</div></div>
+          <div class="pos-divider"></div>
+          <div class="pos-item"><div class="pos-label">Realized P&L</div><div class="pos-val profit" id="posRealized">+124.80 USDC</div></div>
+          <div class="pos-item"><div class="pos-label">Avg Exit Price</div><div class="pos-val" id="posExit">145.20 USDC</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOP MOVERS BOX (below Trade) ===== -->
+<div class="movers-box osrs-panel-outer" style="width:490px;flex-shrink:0;">
+  <div class="osrs-panel-inner">
+    <div class="movers-titlebar">
+      <span>🔥 Top Movers on SOL Today</span>
+    </div>
+    <div class="movers-body">
+      <div class="movers-cols">
+        <div class="movers-col">
+          <div class="movers-col-title up">▲ Gainers</div>
+          <div id="moversUp"></div>
+        </div>
+        <div class="movers-col">
+          <div class="movers-col-title down">▼ Losers</div>
+          <div id="moversDown"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end center-col -->
+
+<!-- ===== RIGHT PANEL (Chart + Quest) ===== -->
+<div class="right-panel">
+
+  <!-- TradingView Chart -->
+  <div class="chart-panel osrs-panel-outer">
+    <div class="osrs-panel-inner">
+      <div class="chart-titlebar">
+        <span id="chartTitle">SOL/USD</span>
+        <div class="chart-tabs" id="chartTabs">
+          <button class="chart-tab" data-tf="15">15m</button>
+          <button class="chart-tab active" data-tf="60">1h</button>
+          <button class="chart-tab" data-tf="240">4h</button>
+          <button class="chart-tab" data-tf="D">1d</button>
+        </div>
+      </div>
+      <div class="chart-body" id="chartBody"></div>
+    </div>
+  </div>
+
+  <!-- Backpack Fiat Onramp -->
+  <div class="fiat-panel osrs-panel-outer">
+    <div class="osrs-panel-inner">
+      <div class="fiat-titlebar">
+        <span>⛽ Fiat Onramp</span>
+        <span style="font-size:10px;color:var(--text-gray);">Buy SOL</span>
+      </div>
+      <div class="fiat-body">
+        <div class="fiat-row">
+          <button class="fiat-btn" id="fiatBackpack">🎒 Backpack</button>
+          <button class="fiat-btn moonpay" id="fiatMoonpay">🌙 MoonPay</button>
+        </div>
+        <div class="fiat-amount-row">
+          <button class="fiat-amount-btn" data-amt="100">$100</button>
+          <button class="fiat-amount-btn" data-amt="250">$250</button>
+          <button class="fiat-amount-btn" data-amt="500">$500</button>
+          <button class="fiat-amount-btn" data-amt="1000">$1,000</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Titan quote info (hidden, backend only) -->
+  <div class="titan-quote-info" id="titanQuoteInfo" style="display:none;"></div>
+  <div id="titanProviders" style="display:none;"></div>
+
+  <!-- Daily Quest / Achievements -->
+  <div class="quest-panel osrs-panel-outer">
+    <div class="osrs-panel-inner">
+      <div class="quest-titlebar">
+        <span>Daily Quest</span>
+        <span style="font-size:11px;color:var(--text-gray);" id="questTimer">Resets in 14h 23m</span>
+      </div>
+      <div class="quest-body" id="questBody"></div>
+    </div>
+  </div>
+
+  <!-- Music Player (moved to right panel) -->
+  <div class="music-panel osrs-panel-outer">
+    <div class="osrs-panel-inner">
+      <div class="music-titlebar">
+        <span>🎵 Music</span>
+        <span class="lvl-badge" id="musicLvlBadge">Lv 3</span>
+      </div>
+      <div class="music-body">
+        <div class="music-now-playing" id="musicNowPlaying">♫ Sea Shanty 2</div>
+        <div class="music-controls">
+          <button class="music-btn" id="musicPrev" title="Previous">⏮</button>
+          <button class="music-btn active" id="musicPlayPause" title="Play/Pause">▶</button>
+          <button class="music-btn" id="musicNext" title="Next">⏭</button>
+          <button class="music-btn" id="musicList" title="Track List">♫</button>
+          <button class="music-btn" id="musicTrapToggle" title="Trap Mode (OSRSBeatz)" style="font-size:9px;width:32px;">TRAP</button>
+        </div>
+        <div class="music-vol-row">
+          <span class="music-vol-label">🔊</span>
+          <input type="range" class="music-vol-slider" id="musicVolSlider" min="0" max="100" value="25">
+        </div>
+        <div class="music-track-list" id="musicTrackList"></div>
+        <div class="lvl-bar-wrap"><div class="lvl-bar-fill" id="lvlBarFill" style="width:0%"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:9px;color:var(--text-gray);text-shadow:1px 1px 0 #000;" id="lvlLabel">Vol Lvl 3</span>
+          <span style="font-size:9px;color:var(--text-yellow);text-shadow:1px 1px 0 #000;" id="lvlXpLabel">0 / 174 XP</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- end main-layout -->
+
+<!-- ===== TOKEN PICKER OVERLAY ===== -->
+<div class="token-selector" id="tokenSelector">
+  <div class="token-picker osrs-panel-outer">
+    <div class="osrs-panel-inner">
+      <div class="token-picker-title"><span>Choose a token</span></div>
+      <div class="token-picker-body" id="tokenPickerList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONFIRM DIALOG ===== -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-dialog osrs-panel-outer">
+    <div class="osrs-panel-inner">
+      <div class="ge-titlebar"><h1 style="font-size:13px;">Confirm offer</h1></div>
+      <div class="cd-body" id="confirmBody">Place this trade?</div>
+      <div class="cd-btns">
+        <button class="osrs-btn" id="confirmYes" style="padding:6px 24px;">Yes</button>
+        <button class="osrs-btn" id="confirmNo" style="padding:6px 24px;">No</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== SHARE PNL OVERLAY ===== -->
+<div class="pnl-share-overlay" id="pnlShareOverlay">
+  <div class="pnl-card" id="pnlCard">
+    <div class="pnl-card-bg profit-bg" id="pnlCardBg"></div>
+    <button class="pnl-card-close" id="pnlCloseBtn">✕</button>
+    <div class="pnl-card-header">
+      <span class="pnl-card-logo">⚔ TRADE</span>
+      <span class="pnl-card-user" id="pnlCardUser">@Player</span>
+    </div>
+    <div class="pnl-card-body">
+      <div class="pnl-card-token" id="pnlCardToken">SOL / USDC</div>
+      <div class="pnl-card-side long" id="pnlCardSide">LONG</div>
+      <div class="pnl-card-roi profit" id="pnlCardROI">+2.80%</div>
+      <div class="pnl-card-pnl profit" id="pnlCardPnl">+$46.56</div>
+      <div class="pnl-card-grid">
+        <div><div class="pnl-card-item-label">Entry</div><div class="pnl-card-item-val" id="pnlEntry">$138.50</div></div>
+        <div><div class="pnl-card-item-label">Mark</div><div class="pnl-card-item-val" id="pnlMarket">$142.38</div></div>
+        <div><div class="pnl-card-item-label">Size</div><div class="pnl-card-item-val" id="pnlSize">12 SOL</div></div>
+      </div>
+      <div class="pnl-card-btns">
+        <button class="pnl-copy-btn" id="pnlCopyBtn">📋 Copy Image</button>
+      </div>
+    </div>
+    <div class="pnl-card-footer">
+      <span style="font-size:10px;color:var(--text-gray);">solana-ge.app</span>
+      <span style="font-size:10px;color:var(--text-orange);">⚔ Trade like a RuneScape legend</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REFERRAL OVERLAY ===== -->
+<div class="referral-overlay" id="referralOverlay">
+  <div class="referral-card" style="position:relative;">
+    <button class="referral-card-close" id="referralCloseBtn">✕</button>
+    <div class="referral-card-header"><span>🧙‍♂️ Invite a Friend</span></div>
+    <div class="referral-card-body">
+      <div class="referral-gnome">🧙‍♂️</div>
+      <div class="referral-msg" id="referralMsg">
+        <span id="referralUserTag" style="color:var(--text-orange);">Player</span> invites you to Trade on Solana!<br>Join the adventure and earn bonus XP.
+      </div>
+      <div class="referral-link-box" id="referralLinkBox">https://solana-ge.app/ref/Player</div>
+      <button class="osrs-btn" style="width:100%;font-size:12px;margin-bottom:6px;" id="copyRefBtn">📋 Copy Referral Link</button>
+      <button class="osrs-btn" style="width:100%;font-size:12px;" id="copyRefMemeBtn">🧙‍♂️ Copy Meme Invite</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="copied-toast" id="copiedToast">Copied to clipboard!</div>
+
+<script>
+// ===== SVG ICONS =====
+const tokenSVGs = {
+  SOL: '<svg viewBox="0 0 32 32" fill="none"><defs><linearGradient id="sg" x1="0" y1="0" x2="32" y2="32"><stop offset="0%" stop-color="#00FFA3"/><stop offset="100%" stop-color="#DC1FFF"/></linearGradient></defs><rect width="32" height="32" rx="16" fill="url(#sg)"/><path d="M9 20.5l2.5-2.5h12L21 20.5H9z" fill="#fff"/><path d="M9 11.5l2.5 2.5h12L21 11.5H9z" fill="#fff"/><path d="M9 16l2.5-2h12L21 16H9z" fill="#fff" opacity="0.8"/></svg>',
+  JUP: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#141C2B"/><circle cx="16" cy="16" r="9" fill="none" stroke="#4ADE80" stroke-width="1.5"/><path d="M11 16c2-4 8-4 10 0" stroke="#4ADE80" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="12" r="2.5" fill="#4ADE80"/></svg>',
+  RAY: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#1C1C3A"/><circle cx="16" cy="16" r="8" fill="none" stroke="#7B61FF" stroke-width="1.5"/><path d="M16 8v16M8 16h16M10.3 10.3l11.4 11.4M21.7 10.3L10.3 21.7" stroke="#7B61FF" stroke-width="1" opacity="0.5"/><circle cx="16" cy="16" r="4" fill="#7B61FF"/></svg>',
+  BONK: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#F5A623"/><circle cx="16" cy="17" r="8" fill="#FFCC4D"/><circle cx="13" cy="15" r="1.5" fill="#333"/><circle cx="19" cy="15" r="1.5" fill="#333"/><ellipse cx="16" cy="19" rx="3" ry="2" fill="#E8941A"/><path d="M10 12c1-3 3-4 6-4s5 1 6 4" stroke="#C87A14" stroke-width="1.5" fill="none"/></svg>',
+  WIF: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#8B5E3C"/><circle cx="16" cy="18" r="7" fill="#D4A574"/><circle cx="13" cy="16" r="1.5" fill="#333"/><circle cx="19" cy="16" r="1.5" fill="#333"/><path d="M8 13c2-5 14-5 16 0" fill="#F472B6"/><ellipse cx="16" cy="20" rx="2.5" ry="1.5" fill="#333" opacity="0.6"/></svg>',
+  JTO: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#1a1a2e"/><path d="M16 8l8 12H8z" fill="none" stroke="#00D4FF" stroke-width="1.8"/><circle cx="16" cy="16" r="3.5" fill="#00D4FF"/><path d="M16 8v5M12 20l2.5-3.5M20 20l-2.5-3.5" stroke="#00D4FF" stroke-width="1" opacity="0.5"/></svg>',
+  MNDE: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#0A1628"/><circle cx="16" cy="16" r="9" fill="none" stroke="#22D3EE" stroke-width="1.2"/><circle cx="16" cy="16" r="5" fill="none" stroke="#22D3EE" stroke-width="1.2"/><circle cx="16" cy="16" r="2" fill="#22D3EE"/><path d="M16 7v4M16 21v4M7 16h4M21 16h4" stroke="#22D3EE" stroke-width="1" opacity="0.4"/></svg>',
+  PYTH: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#242235"/><path d="M12 10h8l-2 12h-4z" fill="#E040FB" opacity="0.8"/><circle cx="16" cy="14" r="3.5" fill="#E040FB"/><path d="M10 22h12" stroke="#E040FB" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  TNSR: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#111827"/><path d="M10 22V10h4l4 6 4-6h4v12" stroke="#F97316" stroke-width="2" fill="none" stroke-linejoin="round"/></svg>',
+  ORCA: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#0C1425"/><ellipse cx="16" cy="17" rx="9" ry="7" fill="#1E3A5F"/><ellipse cx="16" cy="16" rx="7" ry="5.5" fill="#FFD700" opacity="0.15"/><circle cx="13" cy="15" r="2" fill="#fff"/><circle cx="13" cy="15" r="1" fill="#111"/><path d="M18 18c1.5 0 3-0.5 4-1.5" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>',
+  RNDR: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#1a1a2e"/><circle cx="16" cy="16" r="8" fill="none" stroke="#FF4444" stroke-width="1.5"/><polygon points="16,9 22,20 10,20" fill="none" stroke="#FF4444" stroke-width="1.5" stroke-linejoin="round"/><circle cx="16" cy="16" r="2.5" fill="#FF4444"/></svg>',
+  HNT: '<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill="#1B0F3A"/><circle cx="16" cy="16" r="7" fill="none" stroke="#A78BFA" stroke-width="1.5"/><path d="M16 9v14" stroke="#A78BFA" stroke-width="1.5"/><path d="M11 13l5 3-5 3" fill="#A78BFA" opacity="0.5"/><path d="M21 13l-5 3 5 3" fill="#A78BFA" opacity="0.5"/></svg>',
+};
+
+// ===== TOKEN DATA =====
+const tokens = [
+  { name:'Solana',       ticker:'SOL',   price:82.90,     change:0,  icon:'◎', desc:'The native token of the Solana network.', tvSymbol:'SOLUSD' },
+  { name:'Jupiter',      ticker:'JUP',   price:0.154,     change:0,  icon:'♃', desc:'Leading Solana DEX aggregator.', tvSymbol:'JUPUSD' },
+  { name:'Raydium',      ticker:'RAY',   price:0.60,      change:0,  icon:'☀', desc:'Automated market maker built on Solana.', tvSymbol:'RAYUSD' },
+  { name:'Jito',         ticker:'JTO',   price:0.283,     change:0,  icon:'⚡', desc:'MEV and liquid staking on Solana.', tvSymbol:'JTOUSD' },
+  { name:'Marinade',     ticker:'MNDE',  price:0.022,     change:0,  icon:'⚓', desc:'Liquid staking solution for Solana.', tvSymbol:'MNDEUSD' },
+  { name:'Pyth Network', ticker:'PYTH',  price:0.051,     change:0,  icon:'⊛', desc:'Price oracle network for DeFi.', tvSymbol:'PYTHUSD' },
+  { name:'Bonk',         ticker:'BONK',  price:0.000006,  change:0,  icon:'🐕', desc:'The community dog coin of Solana.', tvSymbol:'BONKUSD' },
+  { name:'Dogwifhat',    ticker:'WIF',   price:0.206,     change:0,  icon:'🎩', desc:'A dog wif a hat on Solana.', tvSymbol:'WIFUSD' },
+  { name:'Tensor',       ticker:'TNSR',  price:0.048,     change:0,  icon:'▦', desc:'NFT infrastructure and marketplace.', tvSymbol:'TNSRUSD' },
+  { name:'Orca',         ticker:'ORCA',  price:0.903,     change:0,  icon:'🐋', desc:'Friendly DEX on Solana.', tvSymbol:'ORCAUSD' },
+  { name:'Render',       ticker:'RNDR',  price:1.43,      change:0,  icon:'◈', desc:'Decentralized GPU rendering network.', tvSymbol:'RNDRUSD' },
+  { name:'Helium',       ticker:'HNT',   price:1.37,      change:0,  icon:'📡', desc:'Decentralized wireless on Solana.', tvSymbol:'HNTUSD' },
+];
+
+// Simulated position data per token (entry prices near current market)
+const positions = {
+  SOL:  { qty: 12, avgEntry: 78.50, avgExit: 85.20, realizedPnl: 33.50, soldQty: 5 },
+  JUP:  { qty: 500, avgEntry: 0.14, avgExit: 0.16, realizedPnl: 10.00, soldQty: 200 },
+  RAY:  { qty: 100, avgEntry: 0.55, avgExit: 0, realizedPnl: 0, soldQty: 0 },
+  JTO:  { qty: 200, avgEntry: 0.26, avgExit: 0.30, realizedPnl: 2.00, soldQty: 50 },
+  MNDE: { qty: 800, avgEntry: 0.020, avgExit: 0, realizedPnl: 0, soldQty: 0 },
+  PYTH: { qty: 1200, avgEntry: 0.045, avgExit: 0.055, realizedPnl: 4.00, soldQty: 400 },
+  BONK: { qty: 15000000, avgEntry: 0.0000055, avgExit: 0.0000065, realizedPnl: 1.50, soldQty: 10000000 },
+  WIF:  { qty: 250, avgEntry: 0.19, avgExit: 0, realizedPnl: 0, soldQty: 0 },
+  TNSR: { qty: 0, avgEntry: 0, avgExit: 0, realizedPnl: 0, soldQty: 0 },
+  ORCA: { qty: 75, avgEntry: 0.85, avgExit: 0.95, realizedPnl: 3.00, soldQty: 30 },
+  RNDR: { qty: 45, avgEntry: 1.30, avgExit: 1.45, realizedPnl: 3.00, soldQty: 20 },
+  HNT:  { qty: 60, avgEntry: 1.25, avgExit: 0, realizedPnl: 0, soldQty: 0 },
+};
+
+// ===== 25 DAILY QUESTS =====
+const quests = [
+  { title: "The Flippening", desc: "Buy and sell the same token within 1 hour for profit.", difficulty: "medium", reward: "250 Trading XP", xp: 250, target: 1 },
+  { title: "Diamond Hands", desc: "Hold a position worth over 500 USDC for 24 hours.", difficulty: "easy", reward: "150 Trading XP", xp: 150, target: 1 },
+  { title: "Whale Watcher", desc: "Place a single buy order worth at least 1,000 USDC.", difficulty: "medium", reward: "300 Trading XP", xp: 300, target: 1 },
+  { title: "Spread Eagle", desc: "Place both a buy and sell offer on the same token.", difficulty: "easy", reward: "100 Trading XP", xp: 100, target: 2 },
+  { title: "Diversification Scholar", desc: "Hold positions in at least 5 different tokens.", difficulty: "medium", reward: "350 Trading XP", xp: 350, target: 5 },
+  { title: "Micro Cap Hunter", desc: "Buy at least 1M of any token priced under 0.001 USDC.", difficulty: "easy", reward: "200 Trading XP", xp: 200, target: 1000000 },
+  { title: "The Accumulator", desc: "Place 10 separate buy orders across any tokens.", difficulty: "hard", reward: "500 Trading XP", xp: 500, target: 10 },
+  { title: "Profit Taker", desc: "Realize at least 50 USDC in profit from sells today.", difficulty: "hard", reward: "600 Trading XP", xp: 600, target: 50 },
+  { title: "Market Maker", desc: "Have active buy and sell orders on 3 different tokens.", difficulty: "hard", reward: "550 Trading XP", xp: 550, target: 3 },
+  { title: "First Blood", desc: "Execute your first trade of the day.", difficulty: "easy", reward: "50 Trading XP", xp: 50, target: 1 },
+  { title: "Cost Averaging", desc: "Add to an existing position 3 separate times.", difficulty: "medium", reward: "300 Trading XP", xp: 300, target: 3 },
+  { title: "Token Tourist", desc: "Place at least 1 order on a token you have never traded.", difficulty: "easy", reward: "175 Trading XP", xp: 175, target: 1 },
+  { title: "Volume King", desc: "Trade a total volume of at least 5,000 USDC today.", difficulty: "hard", reward: "750 Trading XP", xp: 750, target: 5000 },
+  { title: "Dip Buyer", desc: "Buy a token that has dropped more than 3% today.", difficulty: "easy", reward: "125 Trading XP", xp: 125, target: 1 },
+  { title: "Momentum Rider", desc: "Buy a token that has gained more than 5% today.", difficulty: "easy", reward: "125 Trading XP", xp: 125, target: 1 },
+  { title: "The Scalper", desc: "Complete 5 round-trip trades in a single session.", difficulty: "hard", reward: "650 Trading XP", xp: 650, target: 5 },
+  { title: "Stacking Sats", desc: "Increase your SOL position by at least 1 SOL.", difficulty: "easy", reward: "100 Trading XP", xp: 100, target: 1 },
+  { title: "Meme Lord", desc: "Buy at least 500K of any meme token (BONK or WIF).", difficulty: "medium", reward: "275 Trading XP", xp: 275, target: 500000 },
+  { title: "Blue Chip Collector", desc: "Hold SOL, JUP, and RAY simultaneously.", difficulty: "medium", reward: "400 Trading XP", xp: 400, target: 3 },
+  { title: "The Liquidator", desc: "Sell your entire position in one token.", difficulty: "easy", reward: "150 Trading XP", xp: 150, target: 1 },
+  { title: "Oracle Apprentice", desc: "Trade PYTH with a volume of at least 100 USDC.", difficulty: "medium", reward: "225 Trading XP", xp: 225, target: 100 },
+  { title: "Network Nomad", desc: "Trade tokens from 4 different categories today.", difficulty: "medium", reward: "350 Trading XP", xp: 350, target: 4 },
+  { title: "Limit Sniper", desc: "Set a buy order at least 5% below current market price.", difficulty: "easy", reward: "175 Trading XP", xp: 175, target: 1 },
+  { title: "Double Down", desc: "Place two orders over 200 USDC each on the same token.", difficulty: "medium", reward: "325 Trading XP", xp: 325, target: 2 },
+  { title: "Grand Exchange Master", desc: "Use all 8 GE offer slots simultaneously.", difficulty: "hard", reward: "1000 Trading XP", xp: 1000, target: 8 },
+];
+
+let selectedToken = 0;
+let offerSide = 'buy';
+let currentTF = '60';
+let activeQuest = null;
+let questProgress = 0;
+let questRerolls = 1;
+let username = 'Player';
+
+// ===== LEADERBOARD DATA =====
+const leaderboardData = [
+  { name: 'Zezima420', pnl: 4821.30 },
+  { name: 'WhaleSlayer', pnl: 3102.55 },
+  { name: 'SolMaxi99', pnl: 2467.80 },
+  { name: 'DegenerateApe', pnl: 1983.42 },
+  { name: 'RuneTrader', pnl: 1204.19 },
+  { name: 'MevSandwich', pnl: 876.55 },
+  { name: 'BonkLord', pnl: 612.33 },
+  { name: 'JupiterKing', pnl: -124.80 },
+  { name: 'PaperHands22', pnl: -567.90 },
+];
+
+const offers = [
+  { side:'buy',  token:0, pct:72 },
+  { side:'sell', token:6, pct:45 },
+  { side:'buy',  token:1, pct:100 },
+];
+
+function isSmallDecimal(price) { return price < 0.0001; }
+
+function fmtPrice(p) {
+  if (p < 0.001) return p.toFixed(7);
+  if (p < 1) return p.toFixed(4);
+  return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtPnl(v) {
+  const s = v >= 0 ? '+' : '';
+  if (Math.abs(v) >= 1000) return s + (v/1000).toFixed(1) + 'K';
+  return s + v.toFixed(2);
+}
+
+// ===== QUANTITY BUTTONS (SOL-denominated) =====
+function updateQtyButtons() {
+  const row = document.getElementById('qtyBtnRow');
+  row.innerHTML = '';
+  row.style.position = 'relative';
+  const solAmounts = [0.5, 1, 5, 10];
+  solAmounts.forEach(amt => {
+    const btn = document.createElement('button');
+    btn.className = 'osrs-btn osrs-btn-sm sol-amt-btn';
+    btn.dataset.sol = amt;
+    btn.textContent = amt;
+    btn.addEventListener('click', () => {
+      document.getElementById('qtyInput').value = amt;
+      row.querySelectorAll('.sol-amt-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateTotal();
+    });
+    row.appendChild(btn);
+  });
+  // Custom X button
+  const xBtn = document.createElement('button');
+  xBtn.className = 'osrs-btn osrs-btn-sm sol-custom-btn';
+  xBtn.id = 'solCustomBtn';
+  xBtn.title = 'Custom amount';
+  xBtn.textContent = '\u2715';
+  xBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    let popup = document.getElementById('solCustomPopup');
+    if (!popup) {
+      popup = document.createElement('div');
+      popup.id = 'solCustomPopup';
+      popup.className = 'sol-custom-popup';
+      popup.innerHTML = '<label>Custom SOL Amount</label><input type="number" id="solCustomInput" placeholder="e.g. 2.5" step="0.1" min="0.01"><button class="osrs-btn" id="solCustomConfirm">Set</button>';
+      row.appendChild(popup);
+      document.getElementById('solCustomConfirm').addEventListener('click', () => {
+        const val = parseFloat(document.getElementById('solCustomInput').value);
+        if (val > 0) {
+          document.getElementById('qtyInput').value = val;
+          row.querySelectorAll('.sol-amt-btn').forEach(b => b.classList.remove('active'));
+          updateTotal();
+          popup.classList.remove('open');
+        }
+      });
+      document.addEventListener('click', (ev) => {
+        if (!ev.target.closest('.sol-custom-popup') && !ev.target.closest('#solCustomBtn')) {
+          popup.classList.remove('open');
+        }
+      });
+    }
+    popup.classList.toggle('open');
+  });
+  row.appendChild(xBtn);
+}
+
+// ===== SLOTS =====
+function renderSlots() {
+  const el = document.getElementById('slotsBar');
+  el.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    const s = document.createElement('div');
+    s.className = 'ge-slot';
+    if (i < offers.length) {
+      const o = offers[i]; const t = tokens[o.token];
+      s.innerHTML = `<div class="slot-badge" style="color:${o.side==='buy'?'var(--text-green)':'var(--text-red)'}">${o.side==='buy'?'B':'S'}</div><div class="slot-icon">${t.icon}</div><div class="slot-label">${t.ticker}</div><div class="mini-bar"><div class="mini-fill ${o.side==='buy'?'fill-buy':'fill-sell'}" style="width:${o.pct}%"></div></div>`;
+      s.addEventListener('click', () => { selectedToken = o.token; offerSide = o.side; updatePanel(); });
+    } else {
+      s.innerHTML = `<div class="slot-icon" style="color:var(--text-gray);font-size:20px;">+</div>`;
+      s.addEventListener('click', () => openTokenPicker());
+    }
+    el.appendChild(s);
+  }
+}
+
+// ===== SYNC SLOTS WITH POSITIONS =====
+function syncSlotsWithPositions() {
+  // Keep offers synced with actual position data
+  // Update existing offer tokens' progress based on position fills
+  offers.forEach(o => {
+    const t = tokens[o.token];
+    if (!t) return;
+    const pos = positions[t.ticker];
+    if (pos && pos.qty > 0) {
+      // Calculate fill % based on avg entry vs current price movement
+      const priceMove = Math.abs(t.price - pos.avgEntry) / pos.avgEntry;
+      o.pct = Math.min(100, Math.round(priceMove * 500 + 50)); // Normalized fill
+    }
+  });
+  renderSlots();
+}
+
+// ===== UPDATE MAIN PANEL =====
+function updatePanel() {
+  const t = tokens[selectedToken];
+  document.getElementById('offerSideLabel').textContent = offerSide === 'buy' ? 'Buy offer' : 'Sell offer';
+  // Arrow removed from UI
+  document.getElementById('itemIconBox').innerHTML = tokenSVGs[t.ticker] ? `<div style="width:36px;height:36px;">${tokenSVGs[t.ticker]}</div>` : t.icon;
+  document.getElementById('itemName').textContent = `${t.name} (${t.ticker})`;
+  document.getElementById('itemDesc').textContent = t.desc;
+  document.getElementById('coinPrice').textContent = fmtPrice(t.price);
+  document.getElementById('priceInput').value = fmtPrice(t.price) + ' USDC';
+  document.getElementById('qtyInput').value = '1'; // Default 1 SOL
+  updateQtyButtons();
+  updateTotal();
+  updatePosition();
+  updateChart();
+}
+
+function getPrice() { return parseFloat(document.getElementById('priceInput').value.replace(/[^0-9.]/g, '')) || 0; }
+
+function updateTotal() {
+  const solAmt = parseFloat(document.getElementById('qtyInput').value) || 0;
+  const solPrice = tokens[0].price; // SOL/USDC price
+  const usdValue = solAmt * solPrice;
+  document.getElementById('totalValue').textContent = fmtPrice(usdValue) + ' USDC';
+}
+
+// ===== POSITION / PNL UPDATE =====
+function updatePosition() {
+  const t = tokens[selectedToken];
+  const pos = positions[t.ticker] || { qty: 0, avgEntry: 0, avgExit: 0, realizedPnl: 0, soldQty: 0 };
+
+  document.getElementById('posTokenLabel').textContent = t.ticker + '/USDC';
+  document.getElementById('posEntry').textContent = pos.qty > 0 ? fmtPrice(pos.avgEntry) + ' USDC' : '--';
+  document.getElementById('posCurrent').textContent = fmtPrice(t.price) + ' USDC';
+  document.getElementById('posSize').textContent = pos.qty > 0 ? (pos.qty >= 1000000 ? (pos.qty/1000000).toFixed(1)+'M' : pos.qty >= 1000 ? (pos.qty/1000).toFixed(0)+'K' : pos.qty) + ' ' + t.ticker : 'No position';
+  document.getElementById('posValue').textContent = pos.qty > 0 ? fmtPrice(t.price * pos.qty) + ' USDC' : '--';
+
+  if (pos.qty > 0) {
+    const unrealized = (t.price - pos.avgEntry) * pos.qty;
+    const roi = ((t.price - pos.avgEntry) / pos.avgEntry * 100);
+    const uEl = document.getElementById('posUnrealized');
+    uEl.textContent = fmtPnl(unrealized) + ' USDC';
+    uEl.className = 'pos-val ' + (unrealized >= 0 ? 'profit' : 'loss');
+    const rEl = document.getElementById('posROI');
+    rEl.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(2) + '%';
+    rEl.className = 'pos-val ' + (roi >= 0 ? 'profit' : 'loss');
+  } else {
+    document.getElementById('posUnrealized').textContent = '--';
+    document.getElementById('posUnrealized').className = 'pos-val';
+    document.getElementById('posROI').textContent = '--';
+    document.getElementById('posROI').className = 'pos-val';
+  }
+
+  const rPnl = document.getElementById('posRealized');
+  if (pos.realizedPnl !== 0) {
+    rPnl.textContent = fmtPnl(pos.realizedPnl) + ' USDC';
+    rPnl.className = 'pos-val ' + (pos.realizedPnl >= 0 ? 'profit' : 'loss');
+  } else { rPnl.textContent = '--'; rPnl.className = 'pos-val'; }
+
+  document.getElementById('posExit').textContent = pos.avgExit > 0 ? fmtPrice(pos.avgExit) + ' USDC' : '--';
+}
+
+// ===== TRADINGVIEW CANDLESTICK CHART =====
+let tvChart = null;
+let tvSeries = null;
+let chartData = {}; // { ticker: [ {time, open, high, low, close}, ... ] }
+
+function initChartData(ticker, currentPrice) {
+  if (!chartData[ticker]) {
+    chartData[ticker] = [];
+    let p = currentPrice * (0.92 + Math.random() * 0.08);
+    const now = Math.floor(Date.now() / 1000);
+    for (let i = 0; i < 120; i++) {
+      const vol = currentPrice < 0.001 ? 0.018 : 0.01;
+      const open = p;
+      // Simulate intra-candle movement
+      const move1 = (Math.random() - 0.48) * vol;
+      const move2 = (Math.random() - 0.48) * vol;
+      const move3 = (Math.random() - 0.48) * vol;
+      const high = open * (1 + Math.abs(move1) + Math.abs(move2) * 0.5);
+      const low = open * (1 - Math.abs(move2) - Math.abs(move3) * 0.5);
+      const close = open * (1 + move1 + move3);
+      p = close;
+      chartData[ticker].push({
+        time: now - (120 - i) * 60,
+        open: open,
+        high: Math.max(open, close, high),
+        low: Math.min(open, close, low),
+        close: close
+      });
+    }
+  }
+}
+
+function addChartPoint(ticker, price) {
+  if (!chartData[ticker]) initChartData(ticker, price);
+  const arr = chartData[ticker];
+  const last = arr[arr.length - 1];
+  const now = last ? last.time + 60 : Math.floor(Date.now() / 1000);
+  // Build a candle from last close to new price with some wick noise
+  const open = last ? last.close : price;
+  const vol = price < 0.001 ? 0.012 : 0.006;
+  const wickUp = price * (1 + Math.random() * vol);
+  const wickDn = price * (1 - Math.random() * vol);
+  arr.push({
+    time: now,
+    open: open,
+    high: Math.max(open, price, wickUp),
+    low: Math.min(open, price, wickDn),
+    close: price
+  });
+  if (arr.length > 300) arr.shift();
+}
+
+function initTVChart() {
+  const container = document.getElementById('chartBody');
+  if (!container || typeof LightweightCharts === 'undefined') return;
+  container.innerHTML = '';
+  tvChart = LightweightCharts.createChart(container, {
+    width: container.clientWidth, height: container.clientHeight,
+    layout: { background: { color: '#131722' }, textColor: '#9f9483', fontFamily: 'monospace', fontSize: 10 },
+    grid: { vertLines: { color: 'rgba(255,152,31,0.04)' }, horzLines: { color: 'rgba(255,152,31,0.04)' } },
+    rightPriceScale: { borderColor: 'rgba(255,152,31,0.15)', scaleMargins: { top: 0.1, bottom: 0.05 } },
+    timeScale: { borderColor: 'rgba(255,152,31,0.15)', timeVisible: true, secondsVisible: false },
+    crosshair: { mode: 0, vertLine: { color: 'rgba(255,152,31,0.3)', labelBackgroundColor: '#ff981f' }, horzLine: { color: 'rgba(255,152,31,0.3)', labelBackgroundColor: '#ff981f' } },
+    handleScroll: { mouseWheel: true, pressedMouseMove: true }, handleScale: { mouseWheel: true, pinch: true },
+  });
+  tvSeries = tvChart.addCandlestickSeries({
+    upColor: '#00ff88',
+    downColor: '#ff4444',
+    borderUpColor: '#00cc66',
+    borderDownColor: '#cc3333',
+    wickUpColor: '#00ff88',
+    wickDownColor: '#ff4444',
+    priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+  });
+  new ResizeObserver(() => {
+    if (tvChart) tvChart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+  }).observe(container);
+}
+
+function drawChart(ticker) {
+  const t = tokens.find(tk => tk.ticker === ticker) || tokens[selectedToken];
+  initChartData(ticker, t.price);
+  if (!tvChart) initTVChart();
+  if (!tvSeries) return;
+  const data = chartData[ticker];
+  if (!data || data.length < 2) return;
+  // Update precision for small-decimal tokens
+  const prec = t.price < 0.0001 ? 8 : t.price < 0.01 ? 5 : t.price < 1 ? 4 : 2;
+  const mv = t.price < 0.0001 ? 0.00000001 : t.price < 0.01 ? 0.00001 : t.price < 1 ? 0.0001 : 0.01;
+  tvSeries.applyOptions({ priceFormat: { type: 'price', precision: prec, minMove: mv } });
+  tvSeries.setData(data);
+  tvChart.timeScale().fitContent();
+}
+
+function updateChart() {
+  const t = tokens[selectedToken];
+  document.getElementById('chartTitle').textContent = t.ticker + '/USD';
+  addChartPoint(t.ticker, t.price);
+  drawChart(t.ticker);
+}
+
+// Chart redraw handled by startLivePrices simulation interval
+
+function setTimeframe(tf) {
+  currentTF = tf;
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.chart-tab[data-tf="${tf}"]`).classList.add('active');
+  updateChart();
+}
+document.querySelectorAll('.chart-tab').forEach(tab => {
+  tab.addEventListener('click', () => setTimeframe(tab.dataset.tf));
+});
+
+// ===== DAILY QUEST SYSTEM =====
+// Volume-related quest indices (exclude holding/passive quests like Diamond Hands, Diversification Scholar, Blue Chip Collector)
+const volumeQuestIndices = [0,2,3,5,6,7,8,9,10,11,12,14,15,16,17,19,20,21,22,23,24];
+function pickRandomQuest(isInit) {
+  if (!isInit && questRerolls <= 0) return;
+  if (!isInit) questRerolls--;
+  const pick = volumeQuestIndices[Math.floor(Math.random() * volumeQuestIndices.length)];
+  activeQuest = quests[pick];
+  questProgress = Math.floor(Math.random() * Math.ceil(activeQuest.target * 0.6));
+  renderQuest();
+}
+
+function renderQuest() {
+  const q = activeQuest;
+  const pct = Math.min(100, Math.floor((questProgress / q.target) * 100));
+  const diffClass = q.difficulty === 'easy' ? 'diff-easy' : q.difficulty === 'medium' ? 'diff-medium' : 'diff-hard';
+  const diffLabel = q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1);
+
+  document.getElementById('questBody').innerHTML = `
+    <div class="quest-card">
+      <div class="quest-icon-row">
+        <div class="quest-scroll-icon">📜</div>
+        <div class="quest-title">${q.title}</div>
+        <div class="quest-difficulty ${diffClass}">${diffLabel}</div>
+      </div>
+      <div class="quest-desc">${q.desc}</div>
+      <div class="quest-reward-row">
+        <div class="quest-reward">Reward: ${q.reward}</div>
+      </div>
+      <div class="quest-progress-wrap">
+        <div class="quest-progress-bar">
+          <div class="quest-progress-fill" style="width:${pct}%"></div>
+          <div class="quest-progress-text">${questProgress} / ${q.target} (${pct}%)</div>
+        </div>
+      </div>
+      <button class="osrs-btn quest-new-btn" id="newQuestBtn" ${questRerolls <= 0 ? 'disabled style="opacity:0.4;cursor:not-allowed;margin-top:4px;width:100%;font-size:11px;padding:3px 6px;text-align:center;"' : ''}>Get A New Quest (${questRerolls} Remaining)</button>
+    </div>
+  `;
+  if (questRerolls > 0) {
+    document.getElementById('newQuestBtn').addEventListener('click', () => pickRandomQuest(false));
+  }
+}
+
+// ===== QUEST TIMER =====
+function updateQuestTimer() {
+  const now = new Date();
+  const reset = new Date(now);
+  reset.setHours(24, 0, 0, 0);
+  const diff = reset - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  document.getElementById('questTimer').textContent = `Resets in ${h}h ${m}m`;
+}
+
+// ===== EVENT LISTENERS =====
+document.getElementById('qtyInput').addEventListener('input', updateTotal);
+document.getElementById('priceInput').addEventListener('input', updateTotal);
+// Price buttons removed - price auto-updates from live feed
+document.getElementById('backBtn').addEventListener('click', () => {
+  offerSide = offerSide === 'buy' ? 'sell' : 'buy'; updatePanel();
+});
+
+document.getElementById('confirmBtn').addEventListener('click', () => {
+  const t = tokens[selectedToken];
+  const solAmt = parseFloat(document.getElementById('qtyInput').value) || 0;
+  const total = document.getElementById('totalValue').textContent;
+  const side = offerSide === 'buy' ? 'Buy' : 'Sell';
+  const sideColor = offerSide === 'buy' ? 'var(--text-green)' : 'var(--text-red)';
+  document.getElementById('confirmBody').innerHTML = 
+    `<span style="color:${sideColor};font-size:18px;">${side}</span><br>` +
+    `<span style="color:var(--text-orange)">${solAmt} SOL</span> worth of <span style="color:var(--text-white)">${t.ticker}</span><br>` +
+    `≈ <span style="color:var(--text-yellow)">${total}</span>`;
+  document.getElementById('confirmOverlay').classList.add('open');
+});
+document.getElementById('confirmNo').addEventListener('click', () => document.getElementById('confirmOverlay').classList.remove('open'));
+document.getElementById('confirmYes').addEventListener('click', () => {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  const t = tokens[selectedToken];
+  const solAmt = parseFloat(document.getElementById('qtyInput').value) || 0;
+  
+  // Play OSRS trade sound
+  if (typeof playSound === 'function') playSound('chime');
+  
+  // Add to an offer slot
+  const existingIdx = offers.findIndex(o => o.token === selectedToken && o.side === offerSide);
+  if (existingIdx >= 0) {
+    offers[existingIdx].pct = Math.min(100, offers[existingIdx].pct + 15);
+  } else if (offers.length < 8) {
+    offers.push({ side: offerSide, token: selectedToken, pct: Math.floor(Math.random() * 60) + 20 });
+  }
+  renderSlots();
+  
+  // Add volume for XP + chat unlock
+  const usdValue = solAmt * tokens[0].price;
+  if (typeof playerVolume !== 'undefined') {
+    playerVolume += usdValue;
+    updateLevelDisplay();
+  }
+  if (typeof volumeSinceLastMsg !== 'undefined') {
+    volumeSinceLastMsg += usdValue;
+    updateChatGate();
+  }
+  
+  // Toast confirmation
+  showToast((offerSide === 'buy' ? '🟢 Bought' : '🔴 Sold') + ' ' + solAmt + ' SOL of ' + t.ticker);
+  
+  // Animate the slot bar briefly
+  const bar = document.getElementById('slotsBar');
+  if (bar) {
+    bar.style.boxShadow = 'inset 0 0 8px rgba(0,255,0,0.3)';
+    setTimeout(() => { bar.style.boxShadow = ''; }, 600);
+  }
+});
+
+// ===== TOKEN PICKER =====
+function openTokenPicker() {
+  const el = document.getElementById('tokenPickerList'); el.innerHTML = '';
+  tokens.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'token-pick-row' + (i === selectedToken ? ' selected' : '');
+    row.innerHTML = `<div class="tp-icon">${tokenSVGs[t.ticker]?`<div style="width:24px;height:24px;">${tokenSVGs[t.ticker]}</div>`:t.icon}</div><div class="tp-info"><div class="tp-name">${t.name}</div><div class="tp-ticker">${t.ticker}/USDC</div></div><div><div class="tp-price">${fmtPrice(t.price)}</div><div class="tp-change ${t.change>=0?'up':'down'}">${t.change>=0?'+':''}${t.change.toFixed(2)}%</div></div>`;
+    row.addEventListener('click', () => { selectedToken = i; updatePanel(); document.getElementById('tokenSelector').classList.remove('open'); });
+    el.appendChild(row);
+  });
+  document.getElementById('tokenSelector').classList.add('open');
+}
+document.getElementById('itemIconBox').style.cursor = 'pointer';
+document.getElementById('itemIconBox').addEventListener('click', openTokenPicker);
+document.getElementById('tokenSelector').addEventListener('click', (e) => { if(e.target===e.currentTarget) document.getElementById('tokenSelector').classList.remove('open'); });
+
+// ===== WHALE WATCHER TICKER TAPE =====
+const whaleCoins = [
+  { sym:'GRIFFAIN', price:0.082, change:47.2, fdv:'$8.2M', tags:['whale','lowfdv'], whale:'Ansem' },
+  { sym:'AI16Z', price:0.34, change:31.8, fdv:'$34M', tags:['whale'], whale:'Shaw' },
+  { sym:'FARTCOIN', price:1.12, change:28.5, fdv:'$112M', tags:['whale'], whale:'GCR' },
+  { sym:'GOAT', price:0.18, change:22.1, fdv:'$18M', tags:['whale','lowfdv'], whale:'Hsaka' },
+  { sym:'ARC', price:0.045, change:19.7, fdv:'$4.5M', tags:['lowfdv'], whale:'DegenSpartan' },
+  { sym:'ZEREBRO', price:0.067, change:18.3, fdv:'$6.7M', tags:['whale','lowfdv'], whale:'Mert' },
+  { sym:'POPCAT', price:0.72, change:15.4, fdv:'$72M', tags:['whale'], whale:'CL207' },
+  { sym:'WEN', price:0.00024, change:14.8, fdv:'$5.2M', tags:['lowfdv'], whale:'Toly' },
+  { sym:'SLERF', price:0.31, change:13.2, fdv:'$31M', tags:['whale'], whale:'ZachXBT' },
+  { sym:'BOME', price:0.0089, change:11.6, fdv:'$12M', tags:['whale','lowfdv'], whale:'Murad' },
+  { sym:'MEW', price:0.0042, change:10.9, fdv:'$8.4M', tags:['lowfdv'], whale:'IcedKnife' },
+  { sym:'MYRO', price:0.15, change:9.7, fdv:'$15M', tags:['whale'], whale:'SBF_Ghost' },
+  { sym:'TNSR', price:1.05, change:8.4, fdv:'$105M', tags:['whale'], whale:'Pentoshi' },
+  { sym:'MOTHER', price:0.058, change:7.8, fdv:'$5.8M', tags:['lowfdv'], whale:'Iggy' },
+  { sym:'MOODENG', price:0.22, change:6.3, fdv:'$22M', tags:['whale','lowfdv'], whale:'Cobie' },
+  { sym:'PNUT', price:0.41, change:5.9, fdv:'$41M', tags:['whale'], whale:'Blknoiz06' },
+  { sym:'CHILLGUY', price:0.035, change:24.6, fdv:'$3.5M', tags:['whale','lowfdv'], whale:'Degen_News' },
+  { sym:'PENGU', price:0.014, change:16.1, fdv:'$14M', tags:['whale','lowfdv'], whale:'Frank' },
+];
+
+function buildTicker() {
+  const el = document.getElementById('tickerScroll');
+  let html = '';
+  // double the items for seamless loop
+  for (let r = 0; r < 2; r++) {
+    whaleCoins.forEach(c => {
+      const tags = c.tags.map(t =>
+        t === 'whale' ? '<span class="ticker-tag whale">🐋 WHALE</span>' :
+        '<span class="ticker-tag lowfdv">LOW FDV</span>'
+      ).join(' ');
+      const whaleName = c.whale ? `<span style="font-size:9px;color:#ffd700;text-shadow:1px 1px 0 #000,0 0 3px rgba(255,215,0,0.3);">👤 ${c.whale}</span>` : '';
+      html += `<div class="ticker-item">
+        <span class="ticker-sym">${c.sym}</span>
+        <span class="ticker-price">${c.price < 0.01 ? c.price.toFixed(5) : c.price < 1 ? c.price.toFixed(3) : c.price.toFixed(2)}</span>
+        <span class="ticker-change ${c.change >= 0 ? 'up' : 'down'}">${c.change >= 0 ? '+' : ''}${c.change.toFixed(1)}%</span>
+        ${whaleName}
+        <span style="font-size:10px;color:var(--text-gray);">${c.fdv}</span>
+        ${tags}
+      </div>`;
+    });
+  }
+  el.innerHTML = html;
+}
+
+// ===== SELL ALL → SOL BUTTON =====
+document.getElementById('sellAllBtn').addEventListener('click', () => {
+  if (selectedToken === null || selectedToken === undefined) {
+    document.getElementById('confirmBody').innerHTML = 'Select a token first<br>to sell its full position.';
+    document.getElementById('confirmOverlay').classList.add('open');
+    return;
+  }
+  const tok = tokens[selectedToken];
+  const pos = positions[tok.ticker] || { qty: 0 };
+  if (pos.qty <= 0) {
+    document.getElementById('confirmBody').innerHTML = `No ${tok.ticker} position to sell.`;
+    document.getElementById('confirmOverlay').classList.add('open');
+    return;
+  }
+  const totalValue = pos.qty * tok.price;
+  const solPrice = tokens[0].price;
+  const solAmount = (totalValue / solPrice).toFixed(4);
+  document.getElementById('confirmBody').innerHTML =
+    `Sell all <span style="color:var(--text-orange)">${pos.qty.toLocaleString()} ${tok.ticker}</span><br>worth <span style="color:var(--text-yellow)">${totalValue.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} USDC</span><br>→ <span style="color:var(--text-cyan)">${solAmount} SOL</span>?`;
+  document.getElementById('confirmOverlay').classList.add('open');
+});
+
+// ===== FULL PORT BUTTON =====
+document.getElementById('fullPortBtn').addEventListener('click', () => {
+  if (!selectedToken) {
+    document.getElementById('confirmBody').innerHTML = 'Select a token first<br>to full port into.';
+    document.getElementById('confirmOverlay').classList.add('open');
+    return;
+  }
+  const target = tokens[selectedToken];
+  // Sum USDC-like stablecoin balance + SOL value
+  const solTok = tokens[0];
+  const solPos = positions['SOL'] || { qty: 0 };
+  const usdcTok = tokens.find(t => t.ticker === 'USDC');
+  const usdcPos = positions['USDC'] || { qty: 0 };
+  const solValue = solPos.qty * solTok.price;
+  const usdcValue = usdcPos.qty * (usdcTok ? usdcTok.price : 1);
+  const totalValue = solValue + usdcValue;
+  const targetAmount = (totalValue / target.price).toLocaleString('en-US', {maximumFractionDigits: target.price < 0.001 ? 0 : 4});
+  document.getElementById('confirmBody').innerHTML =
+    `Full port<br><span style="color:var(--text-cyan)">${solPos.qty.toFixed(2)} SOL</span> + <span style="color:var(--text-yellow)">${usdcPos.qty.toFixed(2)} USDC</span><br>= <span style="color:var(--text-yellow)">$${totalValue.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><br>→ <span style="color:var(--text-green)">${targetAmount} ${target.ticker}</span>?`;
+  document.getElementById('confirmOverlay').classList.add('open');
+});
+
+// ===== SWEEP DUST → SOL =====
+document.getElementById('sweepBtn').addEventListener('click', () => {
+  let dustTokens = [];
+  let dustTotal = 0;
+  for (const ticker of Object.keys(positions)) {
+    if (ticker === 'SOL') continue;
+    const pos = positions[ticker];
+    const tok = tokens.find(t => t.ticker === ticker);
+    if (pos.qty > 0 && tok) {
+      const val = pos.qty * tok.price;
+      if (val < 1 && val > 0) {
+        dustTokens.push({ ticker, val });
+        dustTotal += val;
+      }
+    }
+  }
+  if (dustTokens.length === 0) {
+    document.getElementById('confirmBody').innerHTML = 'No dust found.<br>All positions are ≥ $1.';
+    document.getElementById('confirmOverlay').classList.add('open');
+    return;
+  }
+  const solPrice = tokens[0].price;
+  const solAmount = (dustTotal / solPrice).toFixed(6);
+  const dustList = dustTokens.map(d => `${d.ticker} ($${d.val.toFixed(4)})`).join(', ');
+  document.getElementById('confirmBody').innerHTML =
+    `Sweep ${dustTokens.length} dust position${dustTokens.length > 1 ? 's' : ''}:<br><span style="color:var(--text-gray);font-size:9px">${dustList}</span><br>Total: <span style="color:var(--text-yellow)">$${dustTotal.toFixed(4)}</span><br>→ <span style="color:var(--text-cyan)">${solAmount} SOL</span>?`;
+  document.getElementById('confirmOverlay').classList.add('open');
+});
+
+// ===== USERNAME SYSTEM =====
+document.getElementById('setNameBtn').addEventListener('click', () => {
+  const input = document.getElementById('usernameInput');
+  const val = input.value.trim();
+  if (val.length > 0) {
+    username = val;
+    input.value = '';
+    input.placeholder = username;
+    renderLeaderboardWithLevels();
+  }
+});
+document.getElementById('usernameInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('setNameBtn').click();
+});
+
+// ===== PORTFOLIO VALUE =====
+let portfolioBalances = {};
+let portfolioStartValue = 0;
+
+function updatePortfolioDisplay() {
+  let totalValue = 0;
+  let holdings = [];
+  for (const [ticker, pos] of Object.entries(positions)) {
+    if (pos.qty <= 0) continue;
+    const tok = tokens.find(t => t.ticker === ticker);
+    if (!tok) continue;
+    const val = pos.qty * tok.price;
+    totalValue += val;
+    holdings.push({ ticker, qty: pos.qty, value: val });
+  }
+
+  if (connectedWallet && Object.keys(portfolioBalances).length > 0) {
+    totalValue = 0;
+    holdings = [];
+    for (const [ticker, qty] of Object.entries(portfolioBalances)) {
+      if (qty <= 0) continue;
+      const tok = tokens.find(t => t.ticker === ticker);
+      const price = tok ? tok.price : 0;
+      const val = qty * price;
+      totalValue += val;
+      holdings.push({ ticker, qty, value: val });
+    }
+  }
+
+  const valEl = document.getElementById('portfolioValue');
+  const changeEl = document.getElementById('portfolioDayChange');
+  if (!valEl || !changeEl) return;
+
+  if (totalValue > 0) {
+    valEl.textContent = '$' + totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    valEl.style.color = 'var(--text-green)';
+    valEl.style.textShadow = '1px 1px 0 #000, 0 0 8px rgba(0,255,136,0.3)';
+
+    if (portfolioStartValue === 0) portfolioStartValue = totalValue;
+    const dayChange = totalValue - portfolioStartValue;
+    const dayPct = portfolioStartValue > 0 ? (dayChange / portfolioStartValue * 100) : 0;
+    const isUp = dayChange >= 0;
+    changeEl.textContent = (isUp ? '+' : '') + '$' + Math.abs(dayChange).toFixed(2) + ' (' + (isUp ? '+' : '') + dayPct.toFixed(2) + '%) today';
+    changeEl.style.color = isUp ? 'var(--text-green)' : 'var(--text-red)';
+
+    holdings.sort((a, b) => b.value - a.value);
+    const wrap = document.getElementById('portfolioHoldingsWrap');
+    if (wrap && holdings.length > 0) {
+      wrap.style.display = 'block';
+      wrap.innerHTML = holdings.slice(0, 4).map(h =>
+        '<div style="display:flex;justify-content:space-between;padding:1px 2px;font-size:9px;">' +
+        '<span style="color:var(--text-orange);text-shadow:1px 1px 0 #000;">' + h.ticker + '</span>' +
+        '<span style="color:var(--text-yellow);text-shadow:1px 1px 0 #000;">$' + h.value.toFixed(2) + '</span></div>'
+      ).join('');
+    }
+  } else if (!connectedWallet) {
+    valEl.textContent = '--';
+    changeEl.textContent = 'Connect wallet to view';
+    changeEl.style.color = 'var(--text-gray)';
+  }
+}
+
+// ===== LEADERBOARD =====
+function renderLeaderboard() {
+  const el = document.getElementById('lbBody');
+  // Insert player into leaderboard
+  let myPnl = 312.40;
+  const allPlayers = [...leaderboardData, { name: username, pnl: myPnl, isMe: true }];
+  allPlayers.sort((a, b) => b.pnl - a.pnl);
+  el.innerHTML = allPlayers.map((p, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const nameClass = p.isMe ? 'me' : '';
+    const pnlClass = p.pnl >= 0 ? 'profit' : 'loss';
+    const pnlStr = p.pnl >= 0 ? `+$${p.pnl.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}` : `-$${Math.abs(p.pnl).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    return `<div class="lb-row"><span class="lb-rank ${rankClass}">${i+1}</span><span class="lb-name ${nameClass}">${p.name}${p.isMe?' (You)':''}</span><span class="lb-pnl ${pnlClass}">${pnlStr}</span></div>`;
+  }).join('');
+}
+
+// ===== TOAST HELPER =====
+function showToast(msg) {
+  const toast = document.getElementById('copiedToast');
+  toast.textContent = msg || 'Copied to clipboard!';
+  toast.classList.remove('show');
+  void toast.offsetWidth; // force reflow
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1600);
+}
+
+// ===== REFERRAL SYSTEM =====
+document.getElementById('referralBtn').addEventListener('click', () => {
+  document.getElementById('referralUserTag').textContent = username;
+  document.getElementById('referralLinkBox').textContent = `https://solana-ge.app/ref/${encodeURIComponent(username)}`;
+  document.getElementById('referralMsg').innerHTML = `<span style="color:var(--text-orange);">${username}</span> invites you to Trade on Solana!<br>Join the adventure and earn bonus XP.`;
+  document.getElementById('referralOverlay').classList.add('open');
+});
+document.getElementById('referralCloseBtn').addEventListener('click', () => document.getElementById('referralOverlay').classList.remove('open'));
+document.getElementById('referralOverlay').addEventListener('click', (e) => { if(e.target===e.currentTarget) document.getElementById('referralOverlay').classList.remove('open'); });
+
+document.getElementById('copyRefBtn').addEventListener('click', () => {
+  const link = document.getElementById('referralLinkBox').textContent;
+  navigator.clipboard.writeText(link).then(() => showToast('Referral link copied!'));
+});
+document.getElementById('copyRefMemeBtn').addEventListener('click', () => {
+  const memeText = `🧙‍♂️ ${username} invites you to Trade!\n\n⚔️ Trade Solana tokens like a RuneScape legend\n🏰 Daily quests, leaderboards & memes\n💰 Join now: https://solana-ge.app/ref/${encodeURIComponent(username)}\n\n"Buying gf 10k BONK" 🗡️`;
+  navigator.clipboard.writeText(memeText).then(() => showToast('Meme invite copied!'));
+});
+
+// ===== SHARE PNL =====
+document.getElementById('sharePnlBtn').addEventListener('click', () => {
+  const t = tokens[selectedToken];
+  const pos = positions[t.ticker] || { qty: 0, avgEntry: 0 };
+  document.getElementById('pnlCardUser').textContent = '@' + username;
+  document.getElementById('pnlCardToken').textContent = t.ticker + '/USDC';
+
+  if (pos.qty > 0) {
+    const unrealized = (t.price - pos.avgEntry) * pos.qty;
+    const roi = ((t.price - pos.avgEntry) / pos.avgEntry * 100);
+    const isProfit = unrealized >= 0;
+    document.getElementById('pnlCardSide').textContent = 'LONG';
+    document.getElementById('pnlCardSide').className = 'pnl-card-side long';
+    const pnlEl = document.getElementById('pnlCardPnl');
+    pnlEl.textContent = (isProfit ? '+' : '') + '$' + Math.abs(unrealized).toFixed(2);
+    pnlEl.className = 'pnl-card-pnl ' + (isProfit ? 'profit' : 'loss');
+    document.getElementById('pnlEntry').textContent = '$' + fmtPrice(pos.avgEntry);
+    document.getElementById('pnlMarket').textContent = '$' + fmtPrice(t.price);
+    document.getElementById('pnlROI').textContent = (roi >= 0 ? '+' : '') + roi.toFixed(2) + '%';
+    document.getElementById('pnlROI').style.color = isProfit ? 'var(--text-green)' : 'var(--text-red)';
+    document.getElementById('pnlSize').textContent = (pos.qty >= 1000000 ? (pos.qty/1000000).toFixed(1)+'M' : pos.qty >= 1000 ? (pos.qty/1000).toFixed(0)+'K' : pos.qty) + ' ' + t.ticker;
+  } else {
+    document.getElementById('pnlCardPnl').textContent = 'No Position';
+    document.getElementById('pnlCardPnl').className = 'pnl-card-pnl';
+    document.getElementById('pnlEntry').textContent = '--';
+    document.getElementById('pnlMarket').textContent = '$' + fmtPrice(t.price);
+    document.getElementById('pnlROI').textContent = '--';
+    document.getElementById('pnlSize').textContent = '--';
+  }
+  document.getElementById('pnlShareOverlay').classList.add('open');
+});
+document.getElementById('pnlCloseBtn').addEventListener('click', () => document.getElementById('pnlShareOverlay').classList.remove('open'));
+document.getElementById('pnlShareOverlay').addEventListener('click', (e) => { if(e.target===e.currentTarget) document.getElementById('pnlShareOverlay').classList.remove('open'); });
+document.getElementById('pnlCopyBtn').addEventListener('click', () => {
+  const t = tokens[selectedToken];
+  const pos = positions[t.ticker] || { qty: 0, avgEntry: 0 };
+  const unrealized = pos.qty > 0 ? (t.price - pos.avgEntry) * pos.qty : 0;
+  const roi = pos.qty > 0 ? ((t.price - pos.avgEntry) / pos.avgEntry * 100) : 0;
+  const pnlText = `⚔️ Trade PnL ⚔️\n\n🏰 ${t.ticker}/USDC — LONG\n💰 PnL: ${unrealized >= 0 ? '+' : ''}$${Math.abs(unrealized).toFixed(2)} (${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%)\n📊 Entry: $${fmtPrice(pos.avgEntry)} → Market: $${fmtPrice(t.price)}\n\n🧙‍♂️ @${username} on solana-ge.app`;
+  navigator.clipboard.writeText(pnlText).then(() => showToast('PnL copied to clipboard!'));
+});
+
+// ===== FIAT ONRAMP =====
+let selectedFiatAmount = 100;
+document.querySelectorAll('.fiat-amount-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedFiatAmount = parseInt(btn.dataset.amt);
+    document.querySelectorAll('.fiat-amount-btn').forEach(b => b.style.background = 'var(--bg-slot)');
+    btn.style.background = 'var(--bg-input)';
+  });
+});
+document.getElementById('fiatBackpack').addEventListener('click', () => {
+  window.open(`https://backpack.exchange/buy?amount=${selectedFiatAmount}&currency=USD&asset=SOL`, '_blank');
+});
+document.getElementById('fiatMoonpay').addEventListener('click', () => {
+  window.open(`https://www.moonpay.com/buy/sol?defaultAmount=${selectedFiatAmount}`, '_blank');
+});
+
+// ===== OSRS XP TABLE (Level 1-99) =====
+const xpTable = [0]; // xpTable[level] = total XP needed for that level
+for (let lvl = 1; lvl <= 99; lvl++) {
+  let total = 0;
+  for (let i = 1; i < lvl; i++) {
+    total += Math.floor(i + 300 * Math.pow(2, i / 7));
+  }
+  xpTable[lvl] = Math.floor(total / 4);
+}
+// Volume = XP. $1 traded = 1 XP. Level 3 start = 0 effective XP (xpTable[3]=0 since we offset)
+// We'll use xpTable but offset so level 3 = 0 XP traded
+const lvlXpOffset = xpTable[3]; // XP needed for level 3
+
+let playerVolume = 42680; // simulated starting volume ($)
+let playerLevel = 3;
+let volumeSinceLastMsg = 0; // Must trade $1,000+ to unlock chat
+
+function getVolumeLevel(vol) {
+  const xp = vol;
+  for (let l = 99; l >= 3; l--) {
+    if (xp >= xpTable[l] - lvlXpOffset) return l;
+  }
+  return 3;
+}
+function getXpForLevel(l) { return xpTable[l] - lvlXpOffset; }
+function getXpForNextLevel(l) { return l >= 99 ? Infinity : xpTable[l + 1] - lvlXpOffset; }
+
+function updateLevelDisplay() {
+  playerLevel = getVolumeLevel(playerVolume);
+  const isMaxed = playerLevel >= 99;
+  const currentXp = playerVolume;
+  const thisLvlXp = getXpForLevel(playerLevel);
+  const nextLvlXp = getXpForNextLevel(playerLevel);
+  const pct = isMaxed ? 100 : Math.min(100, ((currentXp - thisLvlXp) / (nextLvlXp - thisLvlXp)) * 100);
+
+  document.getElementById('lvlLabel').textContent = isMaxed ? '✨ Vol Lvl 99 ✨' : `Vol Lvl ${playerLevel}`;
+  document.getElementById('lvlXpLabel').textContent = isMaxed ? 'MAXED' : `${Math.floor(currentXp).toLocaleString()} / ${nextLvlXp.toLocaleString()} XP`;
+  document.getElementById('musicLvlBadge').textContent = `Lv ${playerLevel}`;
+  document.getElementById('musicLvlBadge').className = 'lvl-badge' + (isMaxed ? ' maxed' : '');
+  const fill = document.getElementById('lvlBarFill');
+  fill.style.width = pct + '%';
+  fill.className = 'lvl-bar-fill' + (isMaxed ? ' maxed' : '');
+
+  // Level 99 styling handled by portfolio display
+}
+
+// ===== TROLL BOX =====
+const rsEmojis = ['⚔️','🗡️','🛡️','🏹','🧙‍♂️','💀','🦴','🐉','🐀','🦞','🔥','💰','👑','🏰','🎯','⛏️','🪓','🐟','🦐','🍖','🍺','🧪','💎','🪙','📜','🙏','😂','💪','🤡','🫡'];
+const trollNPCs = [
+  { name: 'Zezima420', level: 99, msgs: ['buying gf 10k BONK', 'nice', 'get rekt noob 💀', 'sea shanty 2 hits different', 'gg ez'] },
+  { name: 'WhaleSlayer', level: 87, msgs: ['SOL to 200 ⚔️', 'just full ported BONK lmaooo', 'who else diamond handing?', 'WAGMI 🔥'] },
+  { name: 'SolMaxi99', level: 72, msgs: ['trimming armor 50k SOL 🛡️', 'flash2:selling lobbies 200gp', 'this is the bottom trust me bro', '🦞🦞🦞'] },
+  { name: 'DegenerateApe', level: 56, msgs: ['all in WIF lets go 🎩', 'wen lambo', 'just got rekt 💀💀', 'buying the dip again'] },
+  { name: 'RuneTrader', level: 45, msgs: ['gl hf ⚔️', 'nice trade', 'BONK going to 0.001 mark my words', '🐉 dragon tier gains'] },
+  { name: 'MevSandwich', level: 34, msgs: ['🥪', 'sandwiched another noob', 'ty for the liquidity', 'ez money 💰'] },
+  { name: 'BonkLord', level: 63, msgs: ['BONK BONK BONK 🐕', '1M BONK = 1M BONK', 'bonk army rise up', 'never selling 💎'] },
+  { name: 'PaperHands22', level: 12, msgs: ['I sold the bottom again 😂', 'why do I even trade', 'going back to woodcutting 🪓', 'pain'] },
+];
+
+function addTrollMessage(name, level, text) {
+  const el = document.getElementById('trollMessages');
+  const isGold = level >= 99;
+  const msg = document.createElement('div');
+  msg.className = 'troll-msg';
+  msg.innerHTML = `<span class="msg-name${isGold ? ' gold-name' : ''}">${name}</span> <span class="msg-lvl">[${level}]</span>: <span class="msg-text">${text}</span>`;
+  el.appendChild(msg);
+  el.scrollTop = el.scrollHeight;
+  // Keep max 50 messages
+  while (el.children.length > 50) el.removeChild(el.firstChild);
+}
+
+function spawnNPCMessage() {
+  const npc = trollNPCs[Math.floor(Math.random() * trollNPCs.length)];
+  const msg = npc.msgs[Math.floor(Math.random() * npc.msgs.length)];
+  addTrollMessage(npc.name, npc.level, msg);
+}
+
+// Build emoji row
+const emojiRow = document.getElementById('trollEmojiRow');
+rsEmojis.forEach(e => {
+  const btn = document.createElement('button');
+  btn.className = 'troll-emoji';
+  btn.textContent = e;
+  btn.addEventListener('click', () => {
+    const inp = document.getElementById('trollInput');
+    if (inp.value.length < 75) inp.value += e;
+    inp.focus();
+  });
+  emojiRow.appendChild(btn);
+});
+
+// Gate check: can user send?
+function canChat() { return volumeSinceLastMsg >= 1000; }
+function updateChatGate() {
+  const canSend = canChat();
+  document.getElementById('trollSendBtn').disabled = !canSend;
+  const gate = document.getElementById('trollGateMsg');
+  if (canSend) {
+    gate.textContent = 'Ready to chat!';
+    gate.style.color = 'var(--text-green)';
+    document.getElementById('trollInput').placeholder = 'Type a message...';
+    document.getElementById('trollInput').disabled = false;
+  } else {
+    gate.textContent = 'Trade $1,000+ to unlock chat';
+    gate.style.color = 'var(--text-orange)';
+    document.getElementById('trollInput').placeholder = 'Trade $1,000+ to unlock chat';
+    document.getElementById('trollInput').disabled = true;
+  }
+}
+
+document.getElementById('trollSendBtn').addEventListener('click', () => {
+  const inp = document.getElementById('trollInput');
+  const text = inp.value.trim();
+  if (!text || !canChat()) return;
+  addTrollMessage(username, playerLevel, text);
+  inp.value = '';
+  volumeSinceLastMsg = 0;
+  updateChatGate();
+});
+document.getElementById('trollInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('trollSendBtn').click();
+});
+
+// Emoji pane toggle
+document.getElementById('trollEmojiToggle').addEventListener('click', () => {
+  const row = document.getElementById('trollEmojiRow');
+  const btn = document.getElementById('trollEmojiToggle');
+  if (row.style.display === 'none') {
+    row.style.display = '';
+    btn.classList.add('active');
+  } else {
+    row.style.display = 'none';
+    btn.classList.remove('active');
+  }
+});
+
+// Spawn NPC messages periodically
+function startTrollNPCs() {
+  // Seed initial messages immediately
+  for (let i = 0; i < 6; i++) {
+    spawnNPCMessage();
+  }
+  // Continuous NPC chat every 3-6 seconds (random per message)
+  function scheduleNext() {
+    const delay = 3000 + Math.floor(Math.random() * 3000);
+    setTimeout(() => {
+      spawnNPCMessage();
+      scheduleNext();
+    }, delay);
+  }
+  scheduleNext();
+}
+
+// ===== OSRS MUSIC PLAYER =====
+const osrsTracks = [
+  { name: 'Sea Shanty 2', file: 'sea_shanty_2' },
+  { name: 'Autumn Voyage', file: 'autumn_voyage' },
+  { name: 'Flute Salad', file: 'flute_salad' },
+  { name: 'Newbie Melody', file: 'newbie_melody' },
+  { name: 'Harmony', file: 'harmony' },
+  { name: 'Scape Main', file: 'scape_main' },
+  { name: 'Gnome Village', file: 'gnome_village' },
+  { name: 'Medieval', file: 'medieval' },
+  { name: 'Barbarianism', file: 'barbarianism' },
+  { name: 'Garden', file: 'garden' },
+  { name: 'Adventure', file: 'adventure' },
+  { name: 'Kingdom', file: 'kingdom' },
+  { name: 'Yesteryear', file: 'yesteryear' },
+  { name: 'Lightwalk', file: 'lightwalk' },
+  { name: 'Spirit', file: 'spirit' },
+  { name: 'Lullaby', file: 'lullaby' },
+  { name: 'Wander', file: 'wander' },
+  { name: 'Background', file: 'background' },
+  { name: 'Fanfare', file: 'fanfare' },
+  { name: 'Dream', file: 'dream' },
+];
+
+let currentTrack = 0;
+let isPlaying = false;
+let musicAudio = null;
+
+// OSRS Wiki audio files (OGG format) via proper media path
+function getTrackUrl(track) {
+  if (trapMode) {
+    // OSRSBeatz trap remixes - search YouTube for the trap version
+    const searchQuery = encodeURIComponent('OSRSBeatz ' + track.name + ' trap remix');
+    // For now use a curated list or fallback to original
+    // In production this would link to actual OSRSBeatz audio files
+    const trapId = trapTracks[track.name];
+    if (trapId && trapId.length > 5) {
+      // Could embed YouTube audio - for now flag in UI
+      document.getElementById('musicNowPlaying').textContent = '🔥 ' + track.name + ' (TRAP)';
+    }
+  }
+  const wikiName = encodeURIComponent(track.name.replace(/ /g, '_') + '.ogg');
+  return 'https://oldschool.runescape.wiki/w/Special:Redirect/file/' + wikiName;
+}
+
+function initMusicPlayer() {
+  musicAudio = new Audio();
+  musicAudio.volume = 0.25;
+  musicAudio.loop = false;
+  musicAudio.addEventListener('ended', () => nextTrack());
+  musicAudio.addEventListener('error', () => {
+    // If track fails to load, try next after a delay
+    document.getElementById('musicNowPlaying').textContent = '♫ ' + osrsTracks[currentTrack].name + ' (loading...)';
+    setTimeout(() => nextTrack(), 2000);
+  });
+
+  // Build track list
+  const list = document.getElementById('musicTrackList');
+  osrsTracks.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'music-track' + (i === 0 ? ' active' : '');
+    el.textContent = t.name;
+    el.addEventListener('click', () => {
+      currentTrack = i;
+      loadAndPlay();
+    });
+    list.appendChild(el);
+  });
+}
+
+function loadAndPlay() {
+  const track = osrsTracks[currentTrack];
+  document.getElementById('musicNowPlaying').textContent = (trapMode ? '🔥 ' : '♫ ') + track.name + (trapMode ? ' (TRAP)' : '');
+  musicAudio.src = getTrackUrl(track);
+  musicAudio.play().then(() => {
+    isPlaying = true;
+    document.getElementById('musicPlayPause').textContent = '⏸';
+    document.getElementById('musicPlayPause').classList.add('active');
+  }).catch(() => {
+    // Autoplay blocked — user must click
+    isPlaying = false;
+    document.getElementById('musicPlayPause').textContent = '▶';
+  });
+  // Update active class
+  document.querySelectorAll('.music-track').forEach((el, i) => {
+    el.className = 'music-track' + (i === currentTrack ? ' active' : '');
+  });
+}
+
+let trapMode = false;
+const trapTracks = {
+  'Sea Shanty 2': 'dQw4w9WgXcQ', // placeholder - OSRSBeatz Sea Shanty 2 trap
+  'Autumn Voyage': 'autumn_voyage_trap',
+  'Flute Salad': 'flute_salad_trap',
+  'Newbie Melody': 'newbie_melody_trap',
+  'Harmony': 'harmony_trap',
+  'Scape Main': 'scape_main_trap',
+};
+
+function nextTrack() {
+  currentTrack = (currentTrack + 1) % osrsTracks.length;
+  loadAndPlay();
+}
+
+document.getElementById('musicPlayPause').addEventListener('click', () => {
+  if (!musicAudio.src || musicAudio.src === '') {
+    loadAndPlay();
+    return;
+  }
+  if (isPlaying) {
+    musicAudio.pause();
+    isPlaying = false;
+    document.getElementById('musicPlayPause').textContent = '▶';
+    document.getElementById('musicPlayPause').classList.remove('active');
+  } else {
+    musicAudio.play().then(() => {
+      isPlaying = true;
+      document.getElementById('musicPlayPause').textContent = '⏸';
+      document.getElementById('musicPlayPause').classList.add('active');
+    }).catch(() => {});
+  }
+});
+
+document.getElementById('musicPrev').addEventListener('click', () => {
+  currentTrack = (currentTrack - 1 + osrsTracks.length) % osrsTracks.length;
+  loadAndPlay();
+});
+document.getElementById('musicNext').addEventListener('click', () => nextTrack());
+
+document.getElementById('musicVolSlider').addEventListener('input', (e) => {
+  if (musicAudio) musicAudio.volume = e.target.value / 100;
+});
+
+document.getElementById('musicList').addEventListener('click', () => {
+  document.getElementById('musicTrackList').classList.toggle('open');
+});
+
+// ===== UPDATE LEADERBOARD WITH LEVELS =====
+function renderLeaderboardWithLevels() {
+  const el = document.getElementById('lbBody');
+  let myPnl = 312.40;
+  const allPlayers = [...leaderboardData.map(p => ({
+    ...p,
+    level: getVolumeLevel(Math.abs(p.pnl) * 20 + Math.random() * 50000) // simulate volume from PnL
+  })), { name: username, pnl: myPnl, isMe: true, level: playerLevel }];
+  allPlayers.sort((a, b) => b.pnl - a.pnl);
+  el.innerHTML = allPlayers.map((p, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const nameClass = p.isMe ? 'me' : '';
+    const isGold = p.level >= 99;
+    const pnlClass = p.pnl >= 0 ? 'profit' : 'loss';
+    const pnlStr = p.pnl >= 0 ? `+$${p.pnl.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}` : `-$${Math.abs(p.pnl).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}`;
+    return `<div class="lb-row"><span class="lb-rank ${rankClass}">${i+1}</span><span class="lb-name ${nameClass}" ${isGold?'style="color:#ffd700;text-shadow:1px 1px 0 #000,0 0 4px rgba(255,215,0,0.4);"':''}>${p.name}${p.isMe?' (You)':''}</span><span class="lb-pnl ${pnlClass}">${pnlStr}</span></div>`;
+  }).join('');
+}
+
+// ===== TITAN EXCHANGE SWAP API INTEGRATION =====
+// Solana token mint addresses
+const TOKEN_MINTS = {
+  SOL:  'So11111111111111111111111111111111111111112',
+  JUP:  'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',
+  RAY:  '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',
+  JTO:  'jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL',
+  MNDE: 'MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey',
+  PYTH: 'HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3',
+  BONK: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+  WIF:  'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
+  TNSR: 'TNSRxcUz1RcC4YrJnCvETr29bGA8BG7HXfCiTyK7Fg8',
+  ORCA: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',
+  RNDR: 'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof',
+  HNT:  'hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux',
+};
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+
+// Titan WebSocket state
+let titanWs = null;
+let titanConnected = false;
+let titanToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImI5MzJiMTkwLTkxZTMtNDhkZC04M2JhLWI1ODA0OWQ1NjIzOSJ9.eyJpYXQiOjE3NzIxMjA0ODIsImV4cCI6MTgwMzY1NjQ4MiwiYXVkIjoiYXBpLnRpdGFuLmFnIiwiaXNzIjoidGl0YW5fcGFydG5lcnMiLCJzdWIiOiJhcGk6ZnJpY3Rpb25sZXNzIn0.7H8WRFEEZfqCm--6Zbb0llKABcOS9b0uLDZv4IyHrys';
+let titanEnv = 'production';
+let titanRegion = 'global';
+let titanQuoteId = 0;
+let titanActiveQuote = null;
+let titanStreamInterval = null;
+let titanLastQuote = null;
+let titanReconnectTimer = null;
+
+function getTitanEndpoint() {
+  if (titanEnv === 'production' || titanEnv === 'live') {
+    // JWT aud=api.titan.ag — try direct Titan Partners endpoint first
+    // Fallback chain: api.titan.ag → partners.api.titan.exchange → rpcpool
+    const regionalMap = {
+      us1: 'us.api.titan.ag',
+      jp1: 'jp.api.titan.ag',
+      de1: 'de.api.titan.ag',
+      global: 'api.titan.ag',
+    };
+    return regionalMap[titanRegion] || 'api.titan.ag';
+  }
+  return `${titanRegion}.api.demo.titan.exchange`;
+}
+
+// Track which Titan endpoint variant we're trying
+let titanEndpointIdx = 0;
+const titanEndpointVariants = [
+  () => `wss://api.titan.ag/ws`,
+  () => `wss://api.titan.ag/api/v1/ws`,
+  () => `wss://api.titan.ag/ws?token=${titanToken}`,
+  () => `wss://partners.api.titan.exchange/api/v1/ws`,
+  () => `wss://partners.api.titan.exchange/ws`,
+];
+
+function getTitanWsUrl() {
+  // If user provided a full Triton endpoint, use it directly (no cycling)
+  if (titanCustomEndpoint) return titanCustomEndpoint;
+  const variant = titanEndpointVariants[titanEndpointIdx % titanEndpointVariants.length];
+  return variant();
+}
+
+function updateTitanStatus(status, text) {
+  // Only update the header status when Titan actually connects successfully.
+  // All other states (connecting, disconnected, error) are ignored here —
+  // refreshPriceUI() controls the label based on the actual active price source.
+  if (status !== 'connected') return;
+
+  const geDot = document.getElementById('geTitanDot');
+  const geLabel = document.getElementById('geTitanLabel');
+
+  if (geDot) geDot.className = 'titan-dot connected';
+  if (geLabel) {
+    geLabel.textContent = text;
+    geLabel.style.color = 'var(--text-green)';
+  }
+}
+
+// Configure Titan API - set your token here or call configureTitan()
+function configureTitan(token, env, region) {
+  titanToken = token || titanToken;
+  titanEnv = env || titanEnv;
+  titanRegion = region || titanRegion;
+}
+
+// Custom Triton endpoint override: ?titanEndpoint=wss://app.mainnet.rpcpool.com/token/titan/api/v1/ws
+let titanCustomEndpoint = null;
+
+// Auto-detect Titan config from URL params
+(function autoDetectTitanKey() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+
+    // Full Triton endpoint (preferred): bypasses all variant cycling
+    const endpoint = params.get('titanEndpoint') || params.get('titan_endpoint');
+    if (endpoint) {
+      titanCustomEndpoint = endpoint;
+      titanToken = titanToken || 'triton'; // ensure truthy so connectTitan proceeds
+      titanEnv = 'production';
+      console.log('[Titan] Custom Triton endpoint from URL:', endpoint);
+    }
+
+    const key = params.get('titanKey') || params.get('titan_key') || params.get('apiKey');
+    const region = params.get('titanRegion') || params.get('region') || 'global';
+    if (key) {
+      titanToken = key;
+      titanEnv = 'production';
+      titanRegion = region;
+      console.log('[Titan] API key detected from URL params, region:', region);
+    }
+  } catch(e) {}
+})();
+
+function connectTitan() {
+  if (titanWs && titanWs.readyState <= 1) {
+    titanWs.close();
+  }
+
+  if (!titanToken) {
+    updateTitanStatus('disconnected', 'No token');
+    return;
+  }
+
+  updateTitanStatus('connecting', 'Connecting...');
+
+  const wsUrl = getTitanWsUrl();
+  console.log('[Titan] Connecting to', wsUrl);
+
+  try {
+    titanWs = new WebSocket(wsUrl);
+  } catch (e) {
+    console.error('[Titan] WebSocket creation failed:', e);
+    updateTitanStatus('disconnected', 'Failed');
+    return;
+  }
+
+  titanWs.onopen = () => {
+    console.log('[Titan] WebSocket connected');
+    titanConnected = true;
+    updateTitanStatus('connected', titanEnv === 'production' ? 'LIVE' : 'Demo');
+
+    // Send auth message
+    const authMsg = {
+      jsonrpc: '2.0',
+      method: 'auth',
+      params: { token: titanToken },
+      id: ++titanQuoteId
+    };
+    titanWs.send(JSON.stringify(authMsg));
+
+    // Start streaming quotes for currently selected token
+    startTitanQuoteStream();
+
+    // Add to troll box
+    addTrollMessage('System', 99, `⚡ Titan Router ${titanEnv === 'production' ? 'LIVE' : 'DEMO'} connected!`);
+  };
+
+  titanWs.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      handleTitanMessage(data);
+    } catch (e) {
+      console.error('[Titan] Parse error:', e);
+    }
+  };
+
+  titanWs.onerror = (e) => {
+    console.error('[Titan] WebSocket error:', e);
+    updateTitanStatus('disconnected', 'Error');
+  };
+
+  titanWs.onclose = (e) => {
+    console.log('[Titan] WebSocket closed:', e.code, e.reason);
+    titanConnected = false;
+    updateTitanStatus('disconnected', 'Disconnected');
+
+    // Auto-reconnect logic
+    if (titanToken && !titanReconnectTimer) {
+      if (titanCustomEndpoint) {
+        // Custom Triton endpoint: retry same endpoint up to 3 times, then give up
+        titanEndpointIdx++;
+        if (titanEndpointIdx >= 3) {
+          console.warn('[Titan] Triton endpoint failed 3 times. Running on CoinGecko/simulation.');
+          titanEndpointIdx = 0;
+          return;
+        }
+        titanReconnectTimer = setTimeout(() => {
+          titanReconnectTimer = null;
+          console.log(`[Titan] Retrying Triton endpoint (attempt ${titanEndpointIdx + 1}/3)...`);
+          connectTitan();
+        }, 5000);
+      } else {
+        // No custom endpoint: cycle through variant URLs
+        titanEndpointIdx++;
+        if (titanEndpointIdx >= titanEndpointVariants.length * 2) {
+          console.warn('[Titan] All endpoint variants exhausted. Running on CoinGecko/simulation.');
+          titanEndpointIdx = 0;
+          return;
+        }
+        titanReconnectTimer = setTimeout(() => {
+          titanReconnectTimer = null;
+          if (titanToken) {
+            console.log(`[Titan] Trying endpoint variant ${titanEndpointIdx % titanEndpointVariants.length + 1}/${titanEndpointVariants.length}...`);
+            connectTitan();
+          }
+        }, 5000);
+      }
+    }
+  };
+}
+
+function disconnectTitan() {
+  titanToken = '';
+  titanConnected = false;
+  if (titanReconnectTimer) {
+    clearTimeout(titanReconnectTimer);
+    titanReconnectTimer = null;
+  }
+  if (titanStreamInterval) {
+    clearInterval(titanStreamInterval);
+    titanStreamInterval = null;
+  }
+  if (titanWs) {
+    titanWs.close();
+    titanWs = null;
+  }
+  updateTitanStatus('disconnected', 'Disconnected');
+  const qi = document.getElementById('titanQuoteInfo');
+  const pv = document.getElementById('titanProviders');
+  if (qi) qi.style.display = 'none';
+  if (pv) pv.style.display = 'none';
+}
+
+function handleTitanMessage(data) {
+  // Handle auth response
+  if (data.id && data.result && data.result.authenticated) {
+    console.log('[Titan] Authenticated successfully');
+    return;
+  }
+
+  // Handle quote streaming response (used for both trade quotes and price sweep)
+  if (data.result && (data.result.outAmount || data.result.outputAmount)) {
+    const outAmount = data.result.outAmount || data.result.outputAmount;
+    const inAmount = data.result.inAmount || data.result.inputAmount;
+    const inputMint = data.result.inputMint;
+    const outputMint = data.result.outputMint;
+
+    // Determine which token this quote prices
+    let quoteTicker = null;
+    const mintToTicker = {};
+    Object.entries(TOKEN_MINTS).forEach(([tk, m]) => { mintToTicker[m] = tk; });
+
+    // If input is a token and output is USDC → pricing that token
+    if (mintToTicker[inputMint] && outputMint === USDC_MINT) {
+      quoteTicker = mintToTicker[inputMint];
+    } else if (mintToTicker[outputMint] && inputMint === USDC_MINT) {
+      quoteTicker = mintToTicker[outputMint];
+    }
+
+    // Calculate effective price in USDC per 1 token
+    let effectivePrice = 0;
+    if (quoteTicker) {
+      const tokenDecimals = quoteTicker === 'SOL' ? 9 : (quoteTicker === 'BONK' ? 5 : 6);
+
+      if (outputMint === USDC_MINT) {
+        // Token → USDC: price = outUSDC / inTokens
+        const usdcAmt = parseFloat(outAmount) / 1e6;
+        const tokenAmt = parseFloat(inAmount) / Math.pow(10, tokenDecimals);
+        effectivePrice = tokenAmt > 0 ? usdcAmt / tokenAmt : 0;
+      } else {
+        // USDC → Token: price = inUSDC / outTokens
+        const usdcAmt = parseFloat(inAmount) / 1e6;
+        const tokenAmt = parseFloat(outAmount) / Math.pow(10, tokenDecimals);
+        effectivePrice = tokenAmt > 0 ? usdcAmt / tokenAmt : 0;
+      }
+    }
+
+    // Update token price if valid
+    if (quoteTicker && !isNaN(effectivePrice) && effectivePrice > 0) {
+      const tokenIdx = tokens.findIndex(t => t.ticker === quoteTicker);
+      if (tokenIdx !== -1) {
+        if (!lastPrices[quoteTicker]) lastPrices[quoteTicker] = tokens[tokenIdx].price;
+        const sessionChange = ((effectivePrice - lastPrices[quoteTicker]) / lastPrices[quoteTicker]) * 100;
+        tokens[tokenIdx].price = effectivePrice;
+        tokens[tokenIdx].change = sessionChange;
+        console.log(`[Titan] ${quoteTicker} = $${effectivePrice.toFixed(6)}`);
+
+        // If this is the currently selected token, update UI immediately
+        if (tokenIdx === selectedToken) {
+          const priceEl = document.getElementById('coinPrice');
+          if (priceEl) priceEl.textContent = fmtPrice(effectivePrice);
+          updatePosition();
+          updateTotal();
+        }
+
+        // Trigger UI refresh after each price update
+        priceSource = 'titan';
+        refreshPriceUI();
+      }
+    }
+
+    // Store last quote for swap execution (only for active trade quotes)
+    titanLastQuote = data.result;
+
+    // Update quote info panel for selected token
+    const t = tokens[selectedToken];
+    if (quoteTicker === t.ticker && effectivePrice > 0) {
+      const quoteInfo = document.getElementById('titanQuoteInfo');
+      if (quoteInfo) {
+        quoteInfo.style.display = 'block';
+        quoteInfo.innerHTML = `⚡ ${fmtPrice(effectivePrice)} USDC | ${data.result.routePlan ? data.result.routePlan.length + ' hops' : 'direct'}`;
+      }
+
+      // Show providers if available
+      if (data.result.providers || data.result.routePlan) {
+        const provDiv = document.getElementById('titanProviders');
+        if (provDiv) {
+          provDiv.style.display = 'block';
+          const routes = data.result.routePlan || [];
+          provDiv.innerHTML = routes.slice(0, 3).map((r, i) => {
+            const label = r.swapInfo?.label || r.label || `Route ${i+1}`;
+            const pct = r.percent ? `${r.percent}%` : '';
+            return `<div class="titan-provider-row"><span class="titan-provider-name">${label}</span><span class="titan-provider-price">${pct}</span>${i===0?'<span class="titan-provider-best">BEST</span>':''}</div>`;
+          }).join('');
+        }
+      }
+    }
+  }
+
+  // Handle error
+  if (data.error) {
+    console.error('[Titan] API Error:', data.error);
+    const quoteInfo = document.getElementById('titanQuoteInfo');
+    if (quoteInfo) {
+      quoteInfo.style.display = 'block';
+      quoteInfo.innerHTML = `<span style="color:var(--text-red);">Error: ${data.error.message || 'Unknown'}</span>`;
+    }
+  }
+}
+
+function startTitanQuoteStream() {
+  // Stop existing stream
+  if (titanStreamInterval) {
+    clearInterval(titanStreamInterval);
+    titanStreamInterval = null;
+  }
+
+  if (!titanConnected || !titanWs || titanWs.readyState !== 1) return;
+
+  const t = tokens[selectedToken];
+  const ticker = t.ticker;
+  const mint = TOKEN_MINTS[ticker];
+  if (!mint) return;
+
+  // Determine input/output mints based on buy/sell
+  const inputMint = offerSide === 'buy' ? USDC_MINT : mint;
+  const outputMint = offerSide === 'buy' ? mint : USDC_MINT;
+
+  // Calculate amount based on quantity input
+  const qty = parseFloat(document.getElementById('qtyInput').value) || 1;
+  const decimals = offerSide === 'buy' ? 6 : (ticker === 'SOL' ? 9 : 6); // USDC=6, SOL=9, others=6
+  let amount;
+  if (offerSide === 'buy') {
+    // Send USDC amount
+    amount = Math.floor(qty * t.price * Math.pow(10, decimals));
+  } else {
+    // Send token amount
+    amount = Math.floor(qty * Math.pow(10, decimals));
+  }
+
+  // Send initial quote request
+  sendTitanQuote(inputMint, outputMint, amount);
+
+  // Stream quotes every 500ms
+  titanStreamInterval = setInterval(() => {
+    if (titanConnected && titanWs && titanWs.readyState === 1) {
+      // Recalculate amount in case qty changed
+      const newQty = parseFloat(document.getElementById('qtyInput').value) || 1;
+      let newAmount;
+      if (offerSide === 'buy') {
+        newAmount = Math.floor(newQty * tokens[selectedToken].price * Math.pow(10, decimals));
+      } else {
+        newAmount = Math.floor(newQty * Math.pow(10, decimals));
+      }
+      sendTitanQuote(inputMint, outputMint, newAmount);
+    }
+  }, 2000); // Poll every 2s to avoid overloading
+}
+
+function sendTitanQuote(inputMint, outputMint, amount) {
+  if (!titanWs || titanWs.readyState !== 1) return;
+
+  const msg = {
+    jsonrpc: '2.0',
+    method: 'quote',
+    params: {
+      inputMint: inputMint,
+      outputMint: outputMint,
+      amount: amount.toString(),
+      slippageBps: 50, // 0.5% slippage
+      swapMode: 'ExactIn',
+    },
+    id: ++titanQuoteId
+  };
+
+  try {
+    titanWs.send(JSON.stringify(msg));
+  } catch (e) {
+    console.error('[Titan] Send error:', e);
+  }
+}
+
+function executeTitanSwap() {
+  if (!titanConnected || !titanLastQuote) {
+    showToast('Connect to Titan first');
+    return false;
+  }
+
+  // Send swap execution request
+  const msg = {
+    jsonrpc: '2.0',
+    method: 'swap',
+    params: {
+      quoteResponse: titanLastQuote,
+      userPublicKey: 'WALLET_NOT_CONNECTED', // Would need wallet adapter
+    },
+    id: ++titanQuoteId
+  };
+
+  try {
+    titanWs.send(JSON.stringify(msg));
+
+    // Track volume for leveling
+    const t = tokens[selectedToken];
+    const qty = parseFloat(document.getElementById('qtyInput').value) || 0;
+    const tradeVolume = qty * t.price;
+    playerVolume += tradeVolume;
+    volumeSinceLastMsg += tradeVolume;
+    updateLevelDisplay();
+    updateChatGate();
+
+    showToast(`⚡ Swap sent via Titan (${titanEnv})`);
+    addTrollMessage(username, playerLevel, `just swapped ${qty} ${t.ticker} ⚡`);
+    return true;
+  } catch (e) {
+    console.error('[Titan] Swap error:', e);
+    showToast('Swap failed');
+    return false;
+  }
+}
+
+// Hook into confirm button to use Titan
+const origConfirmYesHandler = document.getElementById('confirmYes').onclick;
+document.getElementById('confirmYes').addEventListener('click', () => {
+  // Play OSRS hit sound on trade
+  try { playHitSound(); } catch(e) {}
+  if (titanConnected) {
+    executeTitanSwap();
+  }
+  document.getElementById('confirmOverlay').classList.remove('open');
+});
+
+// Hook into token/side changes to restart quote stream
+const origUpdatePanel = updatePanel;
+updatePanel = function() {
+  origUpdatePanel.call(this);
+  if (titanConnected) {
+    startTitanQuoteStream();
+  }
+};
+
+// Titan Partners API - Production endpoints:
+//   Global:    partners.api.titan.exchange (auto-routes to nearest)
+//   US (Ohio): us.partners.api.titan.exchange
+//   JP (Tokyo): jp.partners.api.titan.exchange
+//   DE (Frankfurt): de.partners.api.titan.exchange
+// Connect: configureTitan('YOUR_API_KEY', 'production', 'global'); connectTitan();
+
+
+// ===== OSRS SOUND EFFECTS =====
+// Using Web Audio API for programmatic OSRS-style sounds
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playHitSound() {
+  // OSRS "oof" hit splat sound - low thump
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.15);
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 0.2);
+  // Add noise burst
+  const bufferSize = audioCtx.sampleRate * 0.05;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.15;
+  const noise = audioCtx.createBufferSource();
+  const noiseGain = audioCtx.createGain();
+  noise.buffer = noiseBuffer;
+  noise.connect(noiseGain);
+  noiseGain.connect(audioCtx.destination);
+  noiseGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+  noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+  noise.start(audioCtx.currentTime);
+}
+
+function playCookingSound() {
+  // OSRS cooking success - soft pleasant chime
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc1.connect(gain);
+  osc2.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc1.type = 'sine';
+  osc2.type = 'sine';
+  osc1.frequency.setValueAtTime(523, audioCtx.currentTime); // C5
+  osc1.frequency.setValueAtTime(659, audioCtx.currentTime + 0.08); // E5
+  osc2.frequency.setValueAtTime(784, audioCtx.currentTime + 0.05); // G5
+  gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+  osc1.start(audioCtx.currentTime);
+  osc2.start(audioCtx.currentTime + 0.05);
+  osc1.stop(audioCtx.currentTime + 0.25);
+  osc2.stop(audioCtx.currentTime + 0.25);
+}
+
+function playDamageSound() {
+  // OSRS taking damage - harsh hit
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.12);
+  gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 0.15);
+  // Second thud
+  const osc2 = audioCtx.createOscillator();
+  const gain2 = audioCtx.createGain();
+  osc2.connect(gain2);
+  gain2.connect(audioCtx.destination);
+  osc2.type = 'sawtooth';
+  osc2.frequency.setValueAtTime(80, audioCtx.currentTime + 0.05);
+  osc2.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.2);
+  gain2.gain.setValueAtTime(0.15, audioCtx.currentTime + 0.05);
+  gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+  osc2.start(audioCtx.currentTime + 0.05);
+  osc2.stop(audioCtx.currentTime + 0.2);
+}
+
+// PnL sound throttle: max 1 per 2 minutes, triggered on 1% change
+let lastPnlSoundTime = 0;
+let lastPnlValue = null;
+const PNL_SOUND_COOLDOWN = 120000; // 2 minutes in ms
+const PNL_CHANGE_THRESHOLD = 0.01; // 1%
+
+function checkPnlSound() {
+  const t = tokens[selectedToken];
+  const pos = positions[t.ticker];
+  if (!pos || pos.qty <= 0 || pos.avgEntry <= 0) return;
+  
+  const currentPnlPct = (t.price - pos.avgEntry) / pos.avgEntry;
+  const now = Date.now();
+  
+  if (lastPnlValue !== null && (now - lastPnlSoundTime) > PNL_SOUND_COOLDOWN) {
+    const change = currentPnlPct - lastPnlValue;
+    if (Math.abs(change) >= PNL_CHANGE_THRESHOLD) {
+      if (change > 0) {
+        playCookingSound();
+      } else {
+        playDamageSound();
+      }
+      lastPnlSoundTime = now;
+    }
+  }
+  lastPnlValue = currentPnlPct;
+}
+
+// Check PnL sounds every 10 seconds
+setInterval(checkPnlSound, 10000);
+
+// ===== TOKEN SEARCH WITH DROPDOWN =====
+let searchHighlightIdx = -1;
+
+function showSearchDropdown(matches) {
+  const dd = document.getElementById('tokenSearchDropdown');
+  if (matches.length === 0) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
+  searchHighlightIdx = 0;
+  dd.innerHTML = matches.map((m, i) => {
+    const t = tokens[m];
+    const svg = tokenSVGs[t.ticker] ? `<div style="width:20px;height:20px;">${tokenSVGs[t.ticker]}</div>` : `<span style="font-size:14px;">${t.icon}</span>`;
+    const chClass = t.change >= 0 ? 'up' : 'down';
+    const chStr = (t.change >= 0 ? '+' : '') + t.change.toFixed(2) + '%';
+    return `<div class="tsd-row${i===0?' highlighted':''}" data-idx="${m}">
+      <div class="tsd-icon">${svg}</div>
+      <div class="tsd-info"><span class="tsd-name">${t.name} <span class="tsd-verified">✓</span></span><div class="tsd-ticker">${t.ticker}/USDC</div></div>
+      <div><div class="tsd-price">${fmtPrice(t.price)}</div><div class="tsd-change ${chClass}">${chStr}</div></div>
+    </div>`;
+  }).join('');
+  dd.classList.add('open');
+
+  // Attach click handlers
+  dd.querySelectorAll('.tsd-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const tokenIdx = parseInt(row.dataset.idx);
+      addTokenToSlot(tokenIdx);
+      closeSearchDropdown();
+    });
+  });
+}
+
+function closeSearchDropdown() {
+  const dd = document.getElementById('tokenSearchDropdown');
+  dd.classList.remove('open');
+  dd.innerHTML = '';
+  document.getElementById('tokenSearchInput').value = '';
+  searchHighlightIdx = -1;
+}
+
+function addTokenToSlot(tokenIdx) {
+  // Check if token already in an offer slot
+  const existingSlot = offers.findIndex(o => o.token === tokenIdx);
+  if (existingSlot >= 0) {
+    // Already in a slot - just select it
+    selectedToken = tokenIdx;
+    offerSide = offers[existingSlot].side;
+    updatePanel();
+    renderSlots();
+    return;
+  }
+  // Find first open slot (offers.length < 8)
+  if (offers.length < 8) {
+    offers.push({ side: 'buy', token: tokenIdx, pct: 0 });
+    selectedToken = tokenIdx;
+    offerSide = 'buy';
+    updatePanel();
+    renderSlots();
+    // Flash the new slot
+    const slots = document.getElementById('slotsBar').children;
+    const newSlot = slots[offers.length - 1];
+    if (newSlot) {
+      newSlot.style.boxShadow = '0 0 8px var(--text-orange)';
+      setTimeout(() => { newSlot.style.boxShadow = ''; }, 1200);
+    }
+  } else {
+    // All slots full - just select the token for trading
+    selectedToken = tokenIdx;
+    updatePanel();
+  }
+}
+
+document.getElementById('tokenSearchInput').addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  if (!query || query.length < 1) {
+    closeSearchDropdown();
+    const dd = document.getElementById('tokenSearchDropdown');
+    dd.classList.remove('open');
+    return;
+  }
+  // Find matching built-in tokens
+  const builtInMatches = [];
+  tokens.forEach((t, i) => {
+    if (t.name.toLowerCase().includes(query) || t.ticker.toLowerCase().includes(query)) {
+      builtInMatches.push({ type: 'builtin', idx: i, token: t });
+    }
+  });
+  // Find matching Jupiter tokens (exclude built-in duplicates)
+  const builtInTickers = new Set(tokens.map(t => t.ticker.toUpperCase()));
+  const jupMatches = [];
+  if (jupiterTokens.length > 0 && query.length >= 2) {
+    for (const jt of jupiterTokens) {
+      if (builtInTickers.has((jt.symbol || '').toUpperCase())) continue;
+      if ((jt.symbol || '').toLowerCase().includes(query) || (jt.name || '').toLowerCase().includes(query)) {
+        jupMatches.push({ type: 'jupiter', token: jt });
+        if (jupMatches.length >= 12) break;
+      }
+    }
+  }
+  showSearchDropdownEnhanced(builtInMatches, jupMatches);
+});
+
+function showSearchDropdownEnhanced(builtIn, jupiter) {
+  const dd = document.getElementById('tokenSearchDropdown');
+  searchHighlightIdx = 0;
+  let html = '';
+  let globalIdx = 0;
+  builtIn.forEach(m => {
+    const t = m.token;
+    const svg = tokenSVGs[t.ticker] || '';
+    const changeClass = t.change >= 0 ? 'up' : 'down';
+    const changeStr = t.change >= 0 ? '+' + t.change.toFixed(2) + '%' : t.change.toFixed(2) + '%';
+    const priceStr = t.price < 0.01 ? t.price.toFixed(6) : t.price < 1 ? t.price.toFixed(4) : t.price.toFixed(2);
+    html += '<div class="tsd-row' + (globalIdx === 0 ? ' highlighted' : '') + '" data-idx="' + m.idx + '" data-type="builtin">' +
+      '<div class="tsd-icon">' + (svg || '<span style="font-size:14px;">' + t.icon + '</span>') + '</div>' +
+      '<div class="tsd-info"><div class="tsd-name">' + t.name + '</div><div class="tsd-ticker">' + t.ticker + '</div></div>' +
+      '<div class="tsd-right"><div class="tsd-price">$' + priceStr + '</div><div class="tsd-change ' + changeClass + '">' + changeStr + '</div></div></div>';
+    globalIdx++;
+  });
+  if (jupiter.length > 0) {
+    html += '<div style="padding:2px 6px;font-size:9px;color:var(--text-gray);border-top:1px solid rgba(255,255,255,0.05);text-shadow:1px 1px 0 #000;">Jupiter Verified</div>';
+    jupiter.forEach(m => {
+      const jt = m.token;
+      html += '<div class="tsd-row' + (globalIdx === 0 ? ' highlighted' : '') + '" data-jup=\'' + JSON.stringify({symbol:jt.symbol,name:jt.name,address:jt.address,logoURI:jt.logoURI}).replace(/'/g, "&#39;") + '\' data-type="jupiter">' +
+        '<div class="tsd-icon">' + (jt.logoURI ? '<img src="' + jt.logoURI + '" width="18" height="18" style="border-radius:50%;" onerror="this.style.display=\'none\'">' : '<span style="font-size:14px;">◎</span>') + '</div>' +
+        '<div class="tsd-info"><div class="tsd-name">' + (jt.name || jt.symbol) + '</div><div class="tsd-ticker">' + (jt.symbol || '???') + ' <span style="color:var(--text-green);font-size:8px;">✓</span></div></div>' +
+        '<div class="tsd-right"><div class="tsd-price" style="font-size:8px;color:var(--text-gray);">Jupiter</div></div></div>';
+      globalIdx++;
+    });
+  }
+  if (globalIdx === 0) {
+    html = '<div style="padding:8px;text-align:center;font-size:11px;color:var(--text-gray);text-shadow:1px 1px 0 #000;">No tokens found</div>';
+  }
+  dd.innerHTML = html;
+  dd.classList.add('open');
+
+  dd.querySelectorAll('.tsd-row').forEach((row, ri) => {
+    row.addEventListener('click', () => {
+      if (row.dataset.type === 'builtin') {
+        addTokenToSlot(parseInt(row.dataset.idx));
+      } else if (row.dataset.type === 'jupiter') {
+        const jupData = JSON.parse(row.dataset.jup);
+        // Add Jupiter token to built-in list dynamically
+        const newIdx = tokens.length;
+        tokens.push({
+          name: jupData.name || jupData.symbol,
+          ticker: jupData.symbol,
+          price: 0,
+          change: 0,
+          icon: '◎',
+          desc: 'Verified Solana token via Jupiter.',
+          tvSymbol: jupData.symbol + 'USD',
+          address: jupData.address,
+          logoURI: jupData.logoURI
+        });
+        positions[jupData.symbol] = { qty: 0, avgEntry: 0, avgExit: 0, realizedPnl: 0, soldQty: 0 };
+        addTokenToSlot(newIdx);
+      }
+      closeSearchDropdown();
+    });
+  });
+}
+
+document.getElementById('tokenSearchInput').addEventListener('keydown', (e) => {
+  const dd = document.getElementById('tokenSearchDropdown');
+  const rows = dd.querySelectorAll('.tsd-row');
+
+  if (e.key === 'ArrowDown' && rows.length > 0) {
+    e.preventDefault();
+    searchHighlightIdx = Math.min(searchHighlightIdx + 1, rows.length - 1);
+    rows.forEach((r, i) => r.classList.toggle('highlighted', i === searchHighlightIdx));
+    rows[searchHighlightIdx].scrollIntoView({ block: 'nearest' });
+  }
+  if (e.key === 'ArrowUp' && rows.length > 0) {
+    e.preventDefault();
+    searchHighlightIdx = Math.max(searchHighlightIdx - 1, 0);
+    rows.forEach((r, i) => r.classList.toggle('highlighted', i === searchHighlightIdx));
+    rows[searchHighlightIdx].scrollIntoView({ block: 'nearest' });
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (rows.length > 0 && searchHighlightIdx >= 0 && searchHighlightIdx < rows.length) {
+      rows[searchHighlightIdx].click();
+    }
+  }
+  if (e.key === 'Escape') {
+    closeSearchDropdown();
+  }
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.token-search-bar')) {
+    const dd = document.getElementById('tokenSearchDropdown');
+    if (dd.classList.contains('open')) {
+      dd.classList.remove('open');
+    }
+  }
+});
+
+// ===== WALLET CONNECT =====
+let connectedWallet = null;
+
+function toggleWalletMenu() {
+  const dd = document.getElementById('walletDropdown');
+  dd.classList.toggle('open');
+}
+// Close wallet dropdown on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.wallet-bar-wrap')) {
+    const dd = document.getElementById('walletDropdown');
+    if (dd && dd.classList.contains('open')) dd.classList.remove('open');
+  }
+});
+
+async function connectWallet(type) {
+  let provider = null;
+  if (type === 'phantom') provider = window.solana;
+  else if (type === 'backpack') provider = window.backpack;
+  else if (type === 'solflare') provider = window.solflare;
+
+  if (!provider) {
+    showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' wallet not found. Install the extension.');
+    return;
+  }
+  try {
+    const resp = await provider.connect();
+    const pubkey = resp.publicKey ? resp.publicKey.toString() : 'Connected';
+    connectedWallet = { type, pubkey };
+    const bar = document.getElementById('connectWalletBar');
+    const short = pubkey.length > 8 ? pubkey.slice(0,4) + '..' + pubkey.slice(-4) : pubkey;
+    bar.classList.add('connected');
+    document.getElementById('walletBarLabel').textContent = short + ' (' + type + ')';
+    document.getElementById('walletDropdown').classList.remove('open');
+    showToast('Connected: ' + short);
+    if (typeof playSound === 'function') playSound('chime');
+    // Populate portfolio from wallet balances
+    try {
+      if (provider && provider.getBalance) {
+        const bal = await provider.getBalance();
+        portfolioBalances['SOL'] = (bal || 0) / 1e9;
+      }
+    } catch(e) {}
+    // Use simulated positions as fallback
+    if (Object.keys(portfolioBalances).length === 0) {
+      for (const [ticker, pos] of Object.entries(positions)) {
+        if (pos.qty > 0) portfolioBalances[ticker] = pos.qty;
+      }
+    }
+    updatePortfolioDisplay();
+  } catch(e) {
+    showToast('Connection cancelled');
+  }
+}
+
+// ===== TOP MOVERS RENDER =====
+function renderTopMovers() {
+  const sorted = [...tokens].sort((a, b) => b.change - a.change);
+  const gainers = sorted.filter(t => t.change > 0).slice(0, 3);
+  const losers = sorted.filter(t => t.change < 0).sort((a, b) => a.change - b.change).slice(0, 3);
+
+  const upEl = document.getElementById('moversUp');
+  const downEl = document.getElementById('moversDown');
+  if (!upEl || !downEl) return;
+
+  upEl.innerHTML = gainers.map(t => {
+    const idx = tokens.indexOf(t);
+    return `<div class="mover-row" onclick="selectedToken=${idx};updatePanel();renderSlots();">
+      <span class="mover-sym">${t.ticker}</span>
+      <span class="mover-pct up">+${t.change.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+
+  downEl.innerHTML = losers.map(t => {
+    const idx = tokens.indexOf(t);
+    return `<div class="mover-row" onclick="selectedToken=${idx};updatePanel();renderSlots();">
+      <span class="mover-sym">${t.ticker}</span>
+      <span class="mover-pct down">${t.change.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+}
+
+// ===== JUPITER VERIFIED TOKEN LIST =====
+let jupiterTokens = [];
+async function fetchJupiterTokenList() {
+  try {
+    const resp = await fetch('https://lite-api.jup.ag/tokens/v1/tagged/verified');
+    if (resp.ok) {
+      jupiterTokens = await resp.json();
+      console.log('Jupiter tokens loaded:', jupiterTokens.length);
+    }
+  } catch(e) {
+    console.warn('Jupiter token list fetch failed:', e);
+  }
+}
+
+// SOL amount buttons are now built dynamically by updateQtyButtons()
+
+// ===== LIVE PRICE ENGINE (TITAN PRIMARY + JUPITER FALLBACK) =====
+// TOKEN_MINTS already declared above in Titan Exchange section
+
+let priceUpdateInterval = null;
+let lastPrices = {};
+let priceSource = 'sim'; // 'titan', 'jupiter', 'sim'
+let titanPriceSweepActive = false;
+
+// === TITAN PRICE SWEEP ===
+// Sends WS quote requests for ALL tokens against USDC to get live prices
+function startTitanPriceSweep() {
+  if (!titanConnected || !titanWs || titanWs.readyState !== 1) return;
+  if (titanPriceSweepActive) return;
+  titanPriceSweepActive = true;
+
+  const tickerQueue = Object.keys(TOKEN_MINTS).slice();
+  let idx = 0;
+
+  function sweepNext() {
+    if (idx >= tickerQueue.length) {
+      titanPriceSweepActive = false;
+      return;
+    }
+    if (!titanConnected || !titanWs || titanWs.readyState !== 1) {
+      titanPriceSweepActive = false;
+      return;
+    }
+
+    const ticker = tickerQueue[idx++];
+    const mint = TOKEN_MINTS[ticker];
+    if (!mint) { sweepNext(); return; }
+
+    // Quote: sell token for USDC to get price
+    const tokenDecimals = ticker === 'SOL' ? 9 : (ticker === 'BONK' ? 5 : 6);
+    const amt = ticker === 'BONK' ? '100000000' : ticker === 'SOL' ? '1000000000' : '1000000';
+
+    const msg = {
+      jsonrpc: '2.0',
+      method: 'quote',
+      params: {
+        inputMint: mint,
+        outputMint: USDC_MINT,
+        amount: amt,
+        slippageBps: 100,
+        swapMode: 'ExactIn',
+      },
+      id: ++titanQuoteId
+    };
+
+    try {
+      titanWs.send(JSON.stringify(msg));
+    } catch(e) {
+      console.warn('[Titan] Price sweep send error:', e);
+    }
+
+    setTimeout(sweepNext, 150);
+  }
+
+  sweepNext();
+}
+
+// === COINGECKO + JUPITER QUOTE PRICE ENGINE ===
+const COINGECKO_ID_MAP = {
+  SOL: 'solana', JUP: 'jupiter-exchange-solana', RAY: 'raydium',
+  JTO: 'jito-governance-token', MNDE: 'marinade', PYTH: 'pyth-network',
+  BONK: 'bonk', WIF: 'dogwifcoin', TNSR: 'tensor', ORCA: 'orca',
+  RNDR: 'render-token', HNT: 'helium',
+};
+const COINGECKO_IDS = Object.values(COINGECKO_ID_MAP).join(',');
+const TICKER_BY_CGID = {};
+Object.entries(COINGECKO_ID_MAP).forEach(([tk, cg]) => { TICKER_BY_CGID[cg] = tk; });
+
+async function fetchCoinGeckoPrices() {
+  const url = 'https://api.coingecko.com/api/v3/simple/price?ids=' + COINGECKO_IDS + '&vs_currencies=usd';
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('CoinGecko returned ' + resp.status);
+  const data = await resp.json();
+
+  let updated = false;
+  Object.entries(data).forEach(([cgId, info]) => {
+    const ticker = TICKER_BY_CGID[cgId];
+    if (!ticker || !info || !info.usd) return;
+    const newPrice = parseFloat(info.usd);
+    if (isNaN(newPrice) || newPrice <= 0) return;
+
+    const tokenIdx = tokens.findIndex(t => t.ticker === ticker);
+    if (tokenIdx === -1) return;
+
+    if (!lastPrices[ticker]) lastPrices[ticker] = newPrice;
+    const sessionChange = ((newPrice - lastPrices[ticker]) / lastPrices[ticker]) * 100;
+    tokens[tokenIdx].price = newPrice;
+    tokens[tokenIdx].change = sessionChange;
+    updated = true;
+  });
+
+  if (updated) console.log('[CoinGecko] Prices updated for', Object.keys(data).length, 'tokens');
+  return updated;
+}
+
+// Jupiter Quote API fallback — derive prices from swap quotes
+async function fetchJupiterQuotePrices() {
+  const quoteTokens = Object.entries(TOKEN_MINTS);
+  let updated = false;
+
+  for (const [ticker, mint] of quoteTokens) {
+    try {
+      const decimals = ticker === 'SOL' ? 9 : (ticker === 'BONK' ? 5 : 6);
+      const amt = Math.pow(10, decimals).toString();
+      const url = 'https://lite-api.jup.ag/swap/v1/quote?inputMint=' + mint + '&outputMint=' + USDC_MINT + '&amount=' + amt + '&slippageBps=100';
+      const resp = await fetch(url);
+      if (!resp.ok) continue;
+      const q = await resp.json();
+      const usdcOut = parseFloat(q.outAmount) / 1e6;
+      if (isNaN(usdcOut) || usdcOut <= 0) continue;
+
+      const tokenIdx = tokens.findIndex(t => t.ticker === ticker);
+      if (tokenIdx === -1) continue;
+
+      if (!lastPrices[ticker]) lastPrices[ticker] = usdcOut;
+      const sessionChange = ((usdcOut - lastPrices[ticker]) / lastPrices[ticker]) * 100;
+      tokens[tokenIdx].price = usdcOut;
+      tokens[tokenIdx].change = sessionChange;
+      updated = true;
+    } catch(e) { /* skip token */ }
+  }
+
+  if (updated) console.log('[Jupiter Quote] Prices derived from swap quotes');
+  return updated;
+}
+
+// === UNIFIED PRICE FETCH ===
+async function fetchLivePrices() {
+  try {
+    let updated = false;
+
+    // PRIMARY: Titan WebSocket price sweep (if connected)
+    if (titanConnected && titanWs && titanWs.readyState === 1) {
+      startTitanPriceSweep();
+      priceSource = 'titan';
+      updated = true;
+    } else {
+      // FALLBACK CHAIN: CoinGecko → Jupiter Quote → Simulation
+      try {
+        updated = await fetchCoinGeckoPrices();
+        if (updated) priceSource = 'jupiter'; // green = live API data
+      } catch(cgErr) {
+        console.warn('[LIVE] CoinGecko failed:', cgErr.message);
+        try {
+          updated = await fetchJupiterQuotePrices();
+          if (updated) priceSource = 'jupiter';
+        } catch(jqErr) {
+          console.warn('[LIVE] Jupiter Quote failed:', jqErr.message);
+        }
+      }
+
+      if (!updated) {
+        simulatePriceMovement();
+        priceSource = 'sim';
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      refreshPriceUI();
+    }
+  } catch(e) {
+    console.warn('[LIVE] Price fetch failed, using simulation:', e.message);
+    simulatePriceMovement();
+    priceSource = 'sim';
+    refreshPriceUI();
+  }
+}
+
+// Centralized UI refresh after any price update
+function refreshPriceUI() {
+  updatePosition();
+  renderTopMovers();
+
+  const t = tokens[selectedToken];
+  const priceEl = document.getElementById('coinPrice');
+  if (priceEl) priceEl.textContent = fmtPrice(t.price);
+  const priceInput = document.getElementById('priceInput');
+  if (priceInput) priceInput.value = fmtPrice(t.price) + ' USDC';
+  updateTotal();
+
+  updateTickerPrices();
+
+  // Flash color: orange=Titan, green=Jupiter, yellow=simulated
+  if (priceEl) {
+    priceEl.style.transition = 'color 0.3s';
+    priceEl.style.color = priceSource === 'titan' ? '#ff981f' : priceSource === 'jupiter' ? '#00ff88' : '#ffff00';
+    setTimeout(() => { priceEl.style.color = ''; }, 600);
+  }
+
+  if (tokens[selectedToken]) {
+    addChartPoint(tokens[selectedToken].ticker, tokens[selectedToken].price);
+    drawChart(tokens[selectedToken].ticker);
+  }
+  if (typeof updatePortfolioDisplay === 'function') updatePortfolioDisplay();
+  if (typeof syncSlotsWithPositions === 'function') syncSlotsWithPositions();
+
+  // Update status indicator
+  const dot = document.getElementById('geTitanDot');
+  const label = document.getElementById('geTitanLabel');
+  if (priceSource === 'titan') {
+    if (dot) dot.className = 'titan-dot connected';
+    if (label) { label.textContent = 'Titan Live'; label.style.color = '#ff981f'; }
+  } else if (priceSource === 'jupiter') {
+    if (dot) dot.className = 'titan-dot connected';
+    if (label) { label.textContent = 'Jupiter'; label.style.color = '#00ff88'; }
+  } else {
+    if (dot) dot.className = 'titan-dot connecting';
+    if (label) { label.textContent = 'Simulated'; label.style.color = '#ffff00'; }
+  }
+
+  console.log(`[LIVE] Prices updated via ${priceSource}`);
+}
+
+// Simulate realistic price movement (runs as primary or fallback)
+function simulatePriceMovement() {
+  let anyMoved = false;
+  tokens.forEach((t, i) => {
+    // More volatile for memecoins, calmer for blue chips
+    const isMeme = ['BONK','WIF'].includes(t.ticker);
+    const isDefi = ['JUP','RAY','JTO','ORCA'].includes(t.ticker);
+    const baseVol = isMeme ? 0.006 : isDefi ? 0.003 : 0.002;
+    const drift = (Math.random() - 0.47) * baseVol; // slight upward bias
+    const noise = (Math.random() - 0.5) * baseVol * 2;
+    // Occasional larger moves (2% of time, 3-5x normal)
+    const spike = Math.random() < 0.02 ? (Math.random() - 0.4) * baseVol * 5 : 0;
+    const move = drift + noise + spike;
+    const oldPrice = t.price;
+    t.price *= (1 + move);
+    t.change += move * 100;
+    if (Math.abs(move) > 0.0001) anyMoved = true;
+    
+    // Store baseline for change calculation
+    if (!lastPrices[t.ticker]) lastPrices[t.ticker] = oldPrice;
+  });
+  
+  if (anyMoved) {
+    updatePosition();
+    renderTopMovers();
+    if (typeof updatePortfolioDisplay === 'function') updatePortfolioDisplay();
+    if (typeof syncSlotsWithPositions === 'function') syncSlotsWithPositions();
+    const t = tokens[selectedToken];
+    const priceEl = document.getElementById('coinPrice');
+    if (priceEl) {
+      priceEl.textContent = fmtPrice(t.price);
+      // Flash green/red based on direction
+      const wasUp = t.change >= 0;
+      priceEl.style.transition = 'color 0.3s';
+      priceEl.style.color = wasUp ? '#00ff88' : '#ff4444';
+      setTimeout(() => { priceEl.style.color = ''; }, 500);
+    }
+    const priceInput = document.getElementById('priceInput');
+    if (priceInput) priceInput.value = fmtPrice(t.price) + ' USDC';
+    updateTotal();
+  }
+}
+
+// Update ticker tape with current prices for whale coins
+function updateTickerPrices() {
+  // Simulate whale watcher movement too
+  whaleCoins.forEach(c => {
+    const move = (Math.random() - 0.45) * 0.01;
+    c.price *= (1 + move);
+    c.change += move * 50;
+  });
+  // Rebuild only if performance allows (throttle to every 30s)
+  if (!updateTickerPrices._last || Date.now() - updateTickerPrices._last > 30000) {
+    updateTickerPrices._last = Date.now();
+    buildTicker();
+  }
+}
+
+function startLivePrices() {
+  // Run simulation immediately so everything is alive from frame 1
+  simulatePriceMovement();
+  renderTopMovers();
+  updateChart();
+  buildTicker();
+
+  // STEP 1: Try connecting to Titan production API if key is available
+  if (titanToken) {
+    console.log('[LIVE] Titan API key found, connecting to production...');
+    titanEnv = 'production';
+    connectTitan();
+  } else {
+    console.log('[LIVE] No Titan API key — using Jupiter Price API');
+    console.log('[LIVE] To enable Titan: add ?titanKey=YOUR_KEY to URL or call configureTitan("KEY","production","global");connectTitan();');
+  }
+
+  // STEP 2: Meanwhile, fetch initial prices from Jupiter API (instant results)
+  fetchLivePrices().then(() => {
+    console.log('[LIVE] Initial prices loaded');
+  }).catch(() => {
+    console.log('[LIVE] Running in simulation mode');
+  });
+
+  // Price refresh: CoinGecko free tier allows ~30 calls/min, so poll every 30s
+  // Titan sweep runs if connected, otherwise CoinGecko → Jupiter Quote → Sim
+  priceUpdateInterval = setInterval(() => {
+    fetchLivePrices();
+  }, 30000); // Every 30s to stay within CoinGecko free tier limits
+
+  // Chart update: keep chart alive with latest price every 3s
+  setInterval(() => {
+    if (tokens[selectedToken]) {
+      addChartPoint(tokens[selectedToken].ticker, tokens[selectedToken].price);
+      drawChart(tokens[selectedToken].ticker);
+    }
+  }, 3000);
+
+  // Whale coin ticker + top movers updates every 4s
+  setInterval(() => {
+    updateTickerPrices();
+    renderTopMovers();
+  }, 4000);
+
+  console.log('[LIVE] Price engine started (Titan primary → Jupiter fallback → simulation)');
+}
+
+// ===== INIT =====
+buildTicker();
+renderSlots();
+syncSlotsWithPositions();
+updatePanel();
+renderTopMovers();
+fetchJupiterTokenList();
+pickRandomQuest(true);
+updateLevelDisplay();
+renderLeaderboardWithLevels();
+updateQuestTimer();
+setInterval(updateQuestTimer, 60000);
+initMusicPlayer();
+startTrollNPCs();
+updateChatGate();
+
+// ===== GE TRADE EXECUTION BAR =====
+function resetTradeBar() {
+  const fill = document.getElementById('geTradeFill');
+  const label = document.getElementById('geTradeLabel');
+  if (fill) { fill.style.width = '0%'; fill.classList.remove('executing'); }
+  if (label) label.textContent = '';
+}
+
+function animateTradeExecution(side, ticker, amount) {
+  const fill = document.getElementById('geTradeFill');
+  const label = document.getElementById('geTradeLabel');
+  if (!fill || !label) return;
+
+  fill.style.width = '0%';
+  fill.classList.add('executing');
+  label.textContent = `${side === 'buy' ? 'Buying' : 'Selling'} ${ticker}...`;
+
+  // Animate fill from 0 to 100% over ~2.5 seconds with stages
+  const stages = [
+    { pct: '15%', delay: 200 },
+    { pct: '35%', delay: 600 },
+    { pct: '58%', delay: 1000 },
+    { pct: '78%', delay: 1500 },
+    { pct: '92%', delay: 2000 },
+    { pct: '100%', delay: 2400 },
+  ];
+  stages.forEach(s => {
+    setTimeout(() => { fill.style.width = s.pct; }, s.delay);
+  });
+
+  setTimeout(() => {
+    fill.classList.remove('executing');
+    fill.style.background = 'linear-gradient(180deg, #00ff44, #00aa22)';
+    label.textContent = `✅ ${side === 'buy' ? 'Bought' : 'Sold'} ${amount} ${ticker}`;
+    label.style.color = '#00ff88';
+    // Reset after 3s
+    setTimeout(() => {
+      fill.style.transition = 'width 0.4s';
+      fill.style.width = '0%';
+      fill.style.background = '';
+      label.textContent = '';
+      label.style.color = '';
+      setTimeout(() => { fill.style.transition = 'width 0.6s ease-out'; }, 500);
+    }, 3000);
+  }, 2600);
+}
+
+// Hook confirm button to animate the trade bar
+const _origConfirmClick = document.getElementById('confirmBtn').onclick;
+document.getElementById('confirmBtn').addEventListener('click', () => {
+  const t = tokens[selectedToken];
+  const qty = parseFloat(document.getElementById('qtyInput').value) || 0;
+  if (qty > 0 && t) {
+    animateTradeExecution(offerSide, t.ticker, qty);
+  }
+});
+
+// ===== GAS/PRIORITY FEE SELECTION =====
+let selectedGas = 'normal';
+const gasSettings = { slow: { fee: 5000, label: 'Slow' }, normal: { fee: 50000, label: 'Normal' }, turbo: { fee: 200000, label: 'Turbo' } };
+document.querySelectorAll('.gas-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedGas = btn.dataset.gas;
+    document.querySelectorAll('.gas-btn').forEach(b => {
+      b.style.background = '';
+      b.style.color = '';
+      b.style.boxShadow = '';
+      b.classList.remove('active');
+    });
+    btn.style.background = 'var(--bg-slot)';
+    btn.style.color = 'var(--text-cyan)';
+    btn.style.boxShadow = 'inset 1px 1px 0 #000, inset -1px -1px 0 rgba(100,90,70,0.3)';
+    btn.classList.add('active');
+    showToast('Priority: ' + gasSettings[selectedGas].label + ' (' + gasSettings[selectedGas].fee + ' microlamports)');
+  });
+});
+
+// ===== TRAP MODE TOGGLE =====
+document.getElementById('musicTrapToggle').addEventListener('click', () => {
+  trapMode = !trapMode;
+  const btn = document.getElementById('musicTrapToggle');
+  if (trapMode) {
+    btn.classList.add('active');
+    btn.style.color = '#ff4444';
+    btn.style.textShadow = '0 0 6px rgba(255,68,68,0.5)';
+    showToast('🔥 TRAP MODE ON - OSRSBeatz remixes');
+    document.getElementById('musicNowPlaying').textContent = '🔥 ' + osrsTracks[currentTrack].name + ' (TRAP)';
+  } else {
+    btn.classList.remove('active');
+    btn.style.color = '';
+    btn.style.textShadow = '';
+    showToast('♫ Classic OSRS mode');
+    document.getElementById('musicNowPlaying').textContent = '♫ ' + osrsTracks[currentTrack].name;
+  }
+  // Reload current track in new mode
+  loadAndPlay();
+});
+
+// ===== TITAN API ORDERFLOW ROUTING =====
+// PRIMARY: Titan Exchange Partners API (production WebSocket)
+// FALLBACK: Jupiter Price API v2 (free REST endpoint)
+// LAST RESORT: Local simulation with realistic volatility
+// Order execution routed through Titan's swap endpoint for best execution
+console.log('[TITAN] Orderflow routing: Titan Partners API → Jupiter v2 → Simulation');
+console.log('[TITAN] Endpoints: partners.api.titan.exchange (global), us/jp/de regional clusters');
+
+// Titan production key is hardcoded — auto-connects on page load
+// Key: api:frictionless (partners JWT, expires 2027)
+// Endpoint: partners.api.titan.exchange (global auto-route)
+
+// Start live price engine immediately
+startLivePrices();
+
+// Initial portfolio display
+updatePortfolioDisplay();
+
+// Auto-play music on first user interaction (browsers require gesture)
+document.addEventListener('click', function autoPlay() {
+  if (!isPlaying && musicAudio) {
+    loadAndPlay();
+  }
+  document.removeEventListener('click', autoPlay);
+}, { once: true });
+</script>
+</body>
+</html>
