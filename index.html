@@ -3753,7 +3753,7 @@ async function fetchJupiterTokenList() {
 
 let priceUpdateInterval = null;
 let lastPrices = {};
-let priceSource = 'sim'; // 'titan', 'jupiter', 'sim'
+let priceSource = 'loading'; // 'titan', 'jupiter', 'coingecko', 'loading'
 let titanPriceSweepActive = false;
 
 // === TITAN PRICE SWEEP ===
@@ -4107,8 +4107,11 @@ async function fetchLivePrices() {
       startTitanPriceSweep(); priceSource = 'titan'; updated = true;
     }
 
-    // 4. Simulation
-    if (!updated) { simulatePriceMovement(); priceSource = 'sim'; updated = true; }
+    // 4. No simulation — just hold current prices until API responds
+    // Prices stay frozen (accurate hardcoded values) until real data arrives
+    if (!updated && priceSource === 'loading') {
+      // Still waiting for first successful API response — prices stay frozen
+    }
 
     if (updated) refreshPriceUI();
   } finally {
@@ -4168,64 +4171,28 @@ function refreshPriceUI() {
   } else if (priceSource === 'jupiter') {
     if (dot) dot.className = 'titan-dot connected';
     if (label) { label.textContent = 'Jupiter'; label.style.color = '#00ff88'; }
+  } else if (priceSource === 'coingecko') {
+    if (dot) dot.className = 'titan-dot connected';
+    if (label) { label.textContent = 'CoinGecko'; label.style.color = '#8dc647'; }
   } else {
     if (dot) dot.className = 'titan-dot connecting';
-    if (label) { label.textContent = 'Simulated'; label.style.color = '#ffff00'; }
+    if (label) { label.textContent = 'Loading...'; label.style.color = '#ffff00'; }
   }
 
   console.log(`[LIVE] Prices updated via ${priceSource}`);
 }
 
-// Simulate realistic price movement (runs as primary or fallback)
-function simulatePriceMovement() {
-  let anyMoved = false;
-  tokens.forEach((t, i) => {
-    // More volatile for memecoins, calmer for blue chips
-    const isMeme = ['BONK','WIF'].includes(t.ticker);
-    const isDefi = ['JUP','RAY','JTO','ORCA'].includes(t.ticker);
-    const baseVol = isMeme ? 0.006 : isDefi ? 0.003 : 0.002;
-    const drift = (Math.random() - 0.47) * baseVol; // slight upward bias
-    const noise = (Math.random() - 0.5) * baseVol * 2;
-    // Occasional larger moves (2% of time, 3-5x normal)
-    const spike = Math.random() < 0.02 ? (Math.random() - 0.4) * baseVol * 5 : 0;
-    const move = drift + noise + spike;
-    const oldPrice = t.price;
-    t.price *= (1 + move);
-    t.change += move * 100;
-    if (Math.abs(move) > 0.0001) anyMoved = true;
-    
-    // Store baseline for change calculation
-    if (!lastPrices[t.ticker]) lastPrices[t.ticker] = oldPrice;
-  });
-  
-  if (anyMoved) {
-    updatePosition();
-    renderTopMovers();
-    if (typeof updatePortfolioDisplay === 'function') updatePortfolioDisplay();
-    if (typeof syncSlotsWithPositions === 'function') syncSlotsWithPositions();
-    const t = tokens[selectedToken];
-    const priceEl = document.getElementById('coinPrice');
-    if (priceEl) {
-      priceEl.textContent = fmtPrice(t.price);
-      // Flash green/red based on direction
-      const wasUp = t.change >= 0;
-      priceEl.style.transition = 'color 0.3s';
-      priceEl.style.color = wasUp ? '#00ff88' : '#ff4444';
-      setTimeout(() => { priceEl.style.color = ''; }, 500);
-    }
-    const priceInput = document.getElementById('priceInput');
-    if (priceInput) priceInput.value = fmtPrice(t.price) + ' USDC';
-    updateTotal();
-  }
-}
+// simulatePriceMovement — REMOVED: all prices now come from live API feeds only
 
-// Update ticker tape with current prices for whale coins
+// Update ticker tape with current real prices (no simulation)
 function updateTickerPrices() {
-  // Simulate whale watcher movement too
+  // Sync whale coin prices from real token data where possible
   whaleCoins.forEach(c => {
-    const move = (Math.random() - 0.45) * 0.01;
-    c.price *= (1 + move);
-    c.change += move * 50;
+    const realToken = tokens.find(t => t.ticker === c.ticker);
+    if (realToken && realToken.price > 0) {
+      c.price = realToken.price;
+      c.change = realToken.change;
+    }
   });
   // Rebuild only if performance allows (throttle to every 30s)
   if (!updateTickerPrices._last || Date.now() - updateTickerPrices._last > 30000) {
@@ -4235,15 +4202,15 @@ function updateTickerPrices() {
 }
 
 function startLivePrices() {
-  // Run simulation immediately so everything is alive from frame 1
-  simulatePriceMovement();
+  // Show hardcoded prices immediately (no simulation — wait for real API data)
   renderTopMovers();
   updateChart();
   buildTicker();
 
   // STEP 1: Race all feeds in parallel, lock onto fastest
   benchmarkAllFeeds().then(winner => {
-    console.log(`[LIVE] Locked → ${winner ? priceFeeds[winner].name : 'simulation'}`);
+    console.log(`[LIVE] Locked → ${winner ? priceFeeds[winner].name : 'waiting for API'}`);
+    if (winner) refreshPriceUI(); // Immediately render first real prices
   }).catch(() => {});
 
   // Background Titan WS attempt (opportunistic)
@@ -4260,10 +4227,7 @@ function startLivePrices() {
 
   // Chart live-tick every 250ms — ultra-smooth candle animation
   setInterval(() => {
-    if (priceSource === 'sim') {
-      simulatePriceMovement();
-    }
-    // In-place update: modify cached candle + push to series (no drawChart re-fetch)
+    // Push latest real price to chart candle (no simulation — prices only change from API)
     if (tokens[selectedToken]) {
       const tk = tokens[selectedToken];
       updateLastCandle(tk.ticker, tk.price);
