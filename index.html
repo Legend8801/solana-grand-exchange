@@ -3249,7 +3249,7 @@ function sendTitanQuote(inputMint, outputMint, amount) {
       NewSwapQuoteStream: {
         inputMint: base58Decode(inputMint),
         outputMint: base58Decode(outputMint),
-        amount: BigInt(amount),
+        amount: parseInt(amount),
         swapMode: 'ExactIn',
         slippageBps: 50,
         intervalMs: 1000,
@@ -3785,7 +3785,7 @@ function startTitanPriceSweep() {
 
     // Quote: sell 1 unit of token for USDC to get price
     const decimals = TOKEN_DECIMALS_MAP[ticker] || 6;
-    const amount = BigInt(Math.pow(10, decimals)); // 1 token in smallest units
+    const amount = Math.pow(10, decimals); // 1 token in smallest units (as Number for msgpack compat)
 
     // Titan WS protocol format with MessagePack
     const msg = {
@@ -3854,7 +3854,7 @@ async function fetchCoinGeckoPrices() {
   const tm = setTimeout(() => ctrl.abort(), 5000);
   const resp = await fetch(url, { signal: ctrl.signal });
   clearTimeout(tm);
-  if (resp.status === 429) { console.warn('[CoinGecko] Rate limited — backing off'); return false; }
+  if (resp.status === 429) { _rateLimited('cgBulk'); return false; }
   if (!resp.ok) throw new Error('CoinGecko returned ' + resp.status);
   const data = await resp.json();
 
@@ -3875,7 +3875,7 @@ async function fetchCoinGeckoPrices() {
     updated = true;
   });
 
-  if (updated) console.log('[CoinGecko] Prices updated for', Object.keys(data).length, 'tokens');
+  if (updated) { _rateOk('cgBulk'); }
   return updated;
 }
 
@@ -3896,10 +3896,10 @@ async function fetchJupiterQuotePrices() {
       const tm = setTimeout(() => ctrl.abort(), 3000);
       const resp = await fetch(url, { signal: ctrl.signal });
       clearTimeout(tm);
-      if (resp.status === 429) return null; // rate limited
+      if (resp.status === 429) { _rateLimited('jupFull'); return null; }
       if (!resp.ok) return null;
       const q = await resp.json();
-      if (typeof q === 'string' || q.error) return null; // "Rate limit" text response
+      if (typeof q === 'string' || q.error) { _rateLimited('jupFull'); return null; }
       const usdcOut = parseFloat(q.outAmount) / 1e6;
       if (isNaN(usdcOut) || usdcOut <= 0) return null;
       return { ticker, usdcOut };
@@ -3918,7 +3918,7 @@ async function fetchJupiterQuotePrices() {
     }
   }
 
-  if (updated) console.log('[Jupiter Quote] Prices updated (parallel batches of ' + BATCH_SIZE + ')');
+  if (updated) { _rateOk('jupFull'); }
   return updated;
 }
 
@@ -4020,7 +4020,32 @@ async function benchmarkAllFeeds() {
 
 // Prevent overlapping fetches
 let _priceFetchInFlight = false;
-// Polling now handled by setInterval in startLivePrices()
+
+// ── Adaptive rate limiter ──────────────────────────────────────
+// Starts aggressive, backs off on 429/rate-limit, speeds up on success.
+const _rateState = {
+  // Jupiter single-token (selected token fast path)
+  jupFast:  { interval: 1500, min: 1000, max: 10000, consecutive: 0 },
+  // CoinGecko bulk (all tokens)
+  cgBulk:   { interval: 6000, min: 4000, max: 30000, consecutive: 0 },
+  // Jupiter full sweep (all tokens, fallback)
+  jupFull:  { interval: 8000, min: 6000, max: 30000, consecutive: 0 },
+};
+function _rateLimited(key) {
+  const s = _rateState[key]; if (!s) return;
+  s.consecutive = 0;
+  s.interval = Math.min(s.interval * 2, s.max);
+  console.warn(`[RATE] ${key} throttled → ${(s.interval/1000).toFixed(1)}s`);
+}
+function _rateOk(key) {
+  const s = _rateState[key]; if (!s) return;
+  s.consecutive++;
+  // After 3 consecutive successes, try speeding up
+  if (s.consecutive >= 3) {
+    s.interval = Math.max(Math.floor(s.interval * 0.8), s.min);
+    s.consecutive = 0;
+  }
+}
 
 // Fast single-token Jupiter quote for the selected token
 async function fetchSelectedTokenPrice() {
@@ -4036,12 +4061,13 @@ async function fetchSelectedTokenPrice() {
     const tm = setTimeout(() => ctrl.abort(), 2000);
     const resp = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tm);
-    if (resp.status === 429) return false; // rate limited
+    if (resp.status === 429) { _rateLimited('jupFast'); return false; }
     if (!resp.ok) return false;
     const q = await resp.json();
-    if (typeof q === 'string' || q.error) return false; // "Rate limit" text
+    if (typeof q === 'string' || q.error) { _rateLimited('jupFast'); return false; }
     const usdcOut = parseFloat(q.outAmount) / 1e6;
     if (isNaN(usdcOut) || usdcOut <= 0) return false;
+    _rateOk('jupFast');
     if (!lastPrices[t.ticker]) lastPrices[t.ticker] = usdcOut;
     const sessionChange = ((usdcOut - lastPrices[t.ticker]) / lastPrices[t.ticker]) * 100;
     t.price = usdcOut;
@@ -4203,7 +4229,7 @@ function startLivePrices() {
   // STEP 1: Race all feeds in parallel, lock onto fastest
   benchmarkAllFeeds().then(winner => {
     console.log(`[LIVE] Locked → ${winner ? priceFeeds[winner].name : 'waiting for API'}`);
-    if (winner) refreshPriceUI(); // Immediately render first real prices
+    if (winner) refreshPriceUI();
   }).catch(() => {});
 
   // Background Titan WS attempt (opportunistic)
@@ -4213,22 +4239,34 @@ function startLivePrices() {
     }
   }, 5000);
 
-  // Price refresh: poll LOCKED feed every 5s (respects free API rate limits)
-  // CoinGecko free = ~30 req/min, Jupiter free = ~60 req/min
-  priceUpdateInterval = setInterval(() => {
-    fetchLivePrices();
-  }, 5000);
+  // ── ADAPTIVE POLLING LOOPS ──────────────────────────────────
+  // Each loop uses setTimeout chains so interval adapts per _rateState.
 
-  // Fast selected-token price check every 2s (single lightweight Jupiter call)
-  setInterval(() => {
-    if (!_priceFetchInFlight && activeFeed) {
+  // LOOP 1: Full all-token fetch (CoinGecko or Jupiter depending on activeFeed)
+  // Starts at 6s, backs off to 30s on rate limit, speeds up to 4s on success
+  function fullFetchLoop() {
+    fetchLivePrices();
+    const key = (activeFeed === 'coingecko') ? 'cgBulk' : 'jupFull';
+    setTimeout(fullFetchLoop, _rateState[key].interval);
+  }
+  setTimeout(fullFetchLoop, 1000); // first full fetch 1s after benchmark
+
+  // LOOP 2: Fast selected-token Jupiter quote (just the coin you're viewing)
+  // Starts at 1.5s, backs off to 10s, speeds up to 1s
+  function fastTokenLoop() {
+    if (!_priceFetchInFlight) {
       fetchSelectedTokenPrice().then(ok => {
-        if (ok) { priceSource = priceFeeds[activeFeed]?.label || priceSource; refreshPriceUI(); }
+        if (ok) {
+          priceSource = (activeFeed && priceFeeds[activeFeed]) ? priceFeeds[activeFeed].label : 'jupiter';
+          refreshPriceUI();
+        }
       }).catch(() => {});
     }
-  }, 2000);
+    setTimeout(fastTokenLoop, _rateState.jupFast.interval);
+  }
+  setTimeout(fastTokenLoop, 2000); // start after first full fetch
 
-  // Chart live-tick every 500ms — smooth candle animation from cached prices
+  // LOOP 3: Chart candle tick — uses cached prices, no API calls (can be fast)
   setInterval(() => {
     if (tokens[selectedToken]) {
       const tk = tokens[selectedToken];
@@ -4239,15 +4277,17 @@ function startLivePrices() {
         tvSeries.update(cached.candles[cached.candles.length - 1]);
       }
     }
-  }, 500);
+  }, 250);
 
-  // Whale coin ticker + top movers updates every 3s
+  // LOOP 4: Ticker + top movers refresh (no API calls)
   setInterval(() => {
     updateTickerPrices();
     renderTopMovers();
-  }, 3000);
+  }, 2000);
 
-  console.log('[LIVE] Price engine started — benchmark → lock → 5s full poll, 2s selected token');
+  console.log('[LIVE] Adaptive price engine started — jupFast:' +
+    _rateState.jupFast.interval + 'ms, cgBulk:' + _rateState.cgBulk.interval +
+    'ms, jupFull:' + _rateState.jupFull.interval + 'ms');
 }
 
 // ===== INIT =====
