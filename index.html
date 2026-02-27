@@ -1637,7 +1637,7 @@ const CG_DAYS_MAP = { '15': 1, '60': 7, '240': 30, 'D': 90 };
 
 // Cache: { "SOL_60": { candles: [...], fetchedAt: timestamp } }
 const ohlcCache = {};
-const OHLC_CACHE_TTL = 60000; // 1 minute cache
+const OHLC_CACHE_TTL = 30000; // 30s cache — refresh chart data more often
 
 // Fetch OHLC candles from Binance klines API (free, no auth)
 async function fetchBinanceOHLC(ticker, tf) {
@@ -1759,15 +1759,30 @@ async function fetchOHLCData(ticker, tf) {
   return { candles, source };
 }
 
-// Live tick overlay — update the last candle's close with latest price
+// Live tick overlay — update the last candle's close with latest price,
+// and create a new candle when the current timeframe period rolls over.
 function updateLastCandle(ticker, price) {
   const cacheKey = `${ticker}_${currentTF}`;
   const cached = ohlcCache[cacheKey];
   if (!cached || !cached.candles || cached.candles.length === 0) return;
+
+  const tfSec = ({ '15': 15*60, '60': 60*60, '240': 4*60*60, 'D': 24*60*60 })[currentTF] || 3600;
+  const nowSec = Math.floor(Date.now() / 1000);
+  const currentPeriod = Math.floor(nowSec / tfSec) * tfSec;
   const last = cached.candles[cached.candles.length - 1];
-  last.close = price;
-  last.high = Math.max(last.high, price);
-  last.low = Math.min(last.low, price);
+
+  // If the current time is past the last candle's period, start a new candle
+  if (currentPeriod > last.time) {
+    const newCandle = { time: currentPeriod, open: last.close, high: price, low: price, close: price };
+    cached.candles.push(newCandle);
+    // Keep array bounded (drop oldest if over 500)
+    if (cached.candles.length > 500) cached.candles.shift();
+  } else {
+    // Update existing candle
+    last.close = price;
+    last.high = Math.max(last.high, price);
+    last.low = Math.min(last.low, price);
+  }
 }
 
 // Legacy compat stubs (referenced by refreshPriceUI / intervals)
@@ -3997,55 +4012,108 @@ async function benchmarkAllFeeds() {
   return best;
 }
 
+// Prevent overlapping fetches
+let _priceFetchInFlight = false;
+let _lastFullFetch = 0;
+const FULL_FETCH_INTERVAL = 2000; // Full all-token fetch every 2s
+const SELECTED_FETCH_INTERVAL = 500; // Selected token fetch every 500ms
+
+// Fast single-token Jupiter quote for the selected token
+async function fetchSelectedTokenPrice() {
+  const t = tokens[selectedToken];
+  if (!t) return false;
+  const mint = TOKEN_MINTS[t.ticker];
+  if (!mint) return false;
+  const decimals = TOKEN_DECIMALS_MAP[t.ticker] || 6;
+  const amt = Math.pow(10, decimals).toString();
+  try {
+    const url = 'https://lite-api.jup.ag/swap/v1/quote?inputMint=' + mint + '&outputMint=' + USDC_MINT + '&amount=' + amt + '&slippageBps=100';
+    const ctrl = new AbortController();
+    const tm = setTimeout(() => ctrl.abort(), 2000);
+    const resp = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tm);
+    if (!resp.ok) return false;
+    const q = await resp.json();
+    const usdcOut = parseFloat(q.outAmount) / 1e6;
+    if (isNaN(usdcOut) || usdcOut <= 0) return false;
+    if (!lastPrices[t.ticker]) lastPrices[t.ticker] = usdcOut;
+    const sessionChange = ((usdcOut - lastPrices[t.ticker]) / lastPrices[t.ticker]) * 100;
+    t.price = usdcOut;
+    t.change = sessionChange;
+    return true;
+  } catch(e) { return false; }
+}
+
 // Hot-path price fetch — locked feed only, no waterfall
 async function fetchLivePrices() {
-  // Periodic re-eval (fire-and-forget)
-  if (Date.now() - lastFeedReeval > FEED_REEVAL_MS) {
-    benchmarkAllFeeds();
-  }
+  // Prevent overlapping API calls
+  if (_priceFetchInFlight) return;
+  _priceFetchInFlight = true;
 
-  let updated = false;
-
-  // 1. Locked feed (single call, no overhead)
-  if (activeFeed && priceFeeds[activeFeed]) {
-    const feed = priceFeeds[activeFeed];
-    try {
-      updated = await feed.fetch();
-      if (updated) { priceSource = feed.label; feed.failures = 0; }
-      else feed.failures++;
-    } catch(e) { feed.failures++; }
-    // 3 consecutive failures → force re-benchmark
-    if (feed.failures >= 3) {
-      console.warn(`[LIVE] ${feed.name} failed 3x → re-benchmarking`);
-      feed.healthy = false; lastFeedReeval = 0;
+  try {
+    // Periodic re-eval (fire-and-forget)
+    if (Date.now() - lastFeedReeval > FEED_REEVAL_MS) {
+      benchmarkAllFeeds();
     }
-  }
 
-  // 2. Fallback: try other healthy feeds
-  if (!updated) {
-    for (const key of Object.keys(priceFeeds)) {
-      if (key === activeFeed) continue;
-      const feed = priceFeeds[key];
+    let updated = false;
+    const now = Date.now();
+    const doFullFetch = (now - _lastFullFetch >= FULL_FETCH_INTERVAL);
+
+    // 1. Locked feed
+    if (activeFeed && priceFeeds[activeFeed]) {
+      const feed = priceFeeds[activeFeed];
       try {
-        updated = await feed.fetch();
-        if (updated) {
-          priceSource = feed.label; activeFeed = key;
-          console.log(`[LIVE] Switched → ${feed.name}`);
-          break;
+        if (doFullFetch) {
+          // Full fetch: all tokens
+          updated = await feed.fetch();
+          if (updated) _lastFullFetch = now;
+        } else {
+          // Quick fetch: just selected token (fast ~80ms)
+          if (feed.label === 'jupiter') {
+            updated = await fetchSelectedTokenPrice();
+          } else {
+            updated = await feed.fetch();
+          }
         }
-      } catch(e) {}
+        if (updated) { priceSource = feed.label; feed.failures = 0; }
+        else feed.failures++;
+      } catch(e) { feed.failures++; }
+      // 3 consecutive failures → force re-benchmark
+      if (feed.failures >= 3) {
+        console.warn(`[LIVE] ${feed.name} failed 3x → re-benchmarking`);
+        feed.healthy = false; lastFeedReeval = 0;
+      }
     }
+
+    // 2. Fallback: try other healthy feeds
+    if (!updated) {
+      for (const key of Object.keys(priceFeeds)) {
+        if (key === activeFeed) continue;
+        const feed = priceFeeds[key];
+        try {
+          updated = await feed.fetch();
+          if (updated) {
+            priceSource = feed.label; activeFeed = key;
+            console.log(`[LIVE] Switched → ${feed.name}`);
+            break;
+          }
+        } catch(e) {}
+      }
+    }
+
+    // 3. Titan WS if connected
+    if (!updated && titanConnected && titanWs && titanWs.readyState === 1) {
+      startTitanPriceSweep(); priceSource = 'titan'; updated = true;
+    }
+
+    // 4. Simulation
+    if (!updated) { simulatePriceMovement(); priceSource = 'sim'; updated = true; }
+
+    if (updated) refreshPriceUI();
+  } finally {
+    _priceFetchInFlight = false;
   }
-
-  // 3. Titan WS if connected
-  if (!updated && titanConnected && titanWs && titanWs.readyState === 1) {
-    startTitanPriceSweep(); priceSource = 'titan'; updated = true;
-  }
-
-  // 4. Simulation
-  if (!updated) { simulatePriceMovement(); priceSource = 'sim'; updated = true; }
-
-  if (updated) refreshPriceUI();
 }
 
 // Centralized UI refresh after any price update
@@ -4062,11 +4130,19 @@ function refreshPriceUI() {
 
   updateTickerPrices();
 
-  // Flash color: orange=Titan, green=Jupiter, yellow=simulated
+  // Flash color based on price direction: green=up, red=down, orange=Titan source
   if (priceEl) {
-    priceEl.style.transition = 'color 0.3s';
-    priceEl.style.color = priceSource === 'titan' ? '#ff981f' : priceSource === 'jupiter' ? '#00ff88' : '#ffff00';
-    setTimeout(() => { priceEl.style.color = ''; }, 600);
+    const prevP = priceEl._lastPrice || t.price;
+    const dir = t.price > prevP ? 'up' : t.price < prevP ? 'down' : 'flat';
+    priceEl._lastPrice = t.price;
+    priceEl.style.transition = 'color 0.15s';
+    if (priceSource === 'titan') {
+      priceEl.style.color = dir === 'up' ? '#ffbb33' : dir === 'down' ? '#ff6600' : '#ff981f';
+    } else {
+      priceEl.style.color = dir === 'up' ? '#00ff88' : dir === 'down' ? '#ff4444' : '';
+    }
+    clearTimeout(priceEl._flashTimer);
+    priceEl._flashTimer = setTimeout(() => { priceEl.style.color = ''; }, 400);
   }
 
   // Update last candle close with latest REST price (in-place, no full redraw)
@@ -4177,12 +4253,12 @@ function startLivePrices() {
     }
   }, 5000);
 
-  // Price refresh: poll LOCKED feed every 1s (single call, ~100-200ms)
+  // Price refresh: poll LOCKED feed every 500ms for snappy updates
   priceUpdateInterval = setInterval(() => {
     fetchLivePrices();
-  }, 1000);
+  }, 500);
 
-  // Chart live-tick every 500ms — smooth candle animation
+  // Chart live-tick every 250ms — ultra-smooth candle animation
   setInterval(() => {
     if (priceSource === 'sim') {
       simulatePriceMovement();
@@ -4197,15 +4273,15 @@ function startLivePrices() {
         tvSeries.update(cached.candles[cached.candles.length - 1]);
       }
     }
-  }, 500);
+  }, 250);
 
-  // Whale coin ticker + top movers updates every 2s
+  // Whale coin ticker + top movers updates every 1.5s
   setInterval(() => {
     updateTickerPrices();
     renderTopMovers();
-  }, 2000);
+  }, 1500);
 
-  console.log('[LIVE] Price engine started — benchmark → lock → 1s poll, 500ms chart tick');
+  console.log('[LIVE] Price engine started — benchmark → lock → 500ms poll, 250ms chart tick');
 }
 
 // ===== INIT =====
