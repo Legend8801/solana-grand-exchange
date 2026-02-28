@@ -3753,7 +3753,7 @@ async function fetchJupiterTokenList() {
 
 let priceUpdateInterval = null;
 let lastPrices = {};
-let priceSource = 'loading'; // 'titan', 'jupiter', 'coingecko', 'loading'
+let priceSource = 'loading'; // 'pyth', 'titan', 'jupiter', 'coingecko', 'loading'
 let titanPriceSweepActive = false;
 
 // === TITAN PRICE SWEEP ===
@@ -3936,18 +3936,181 @@ async function fetchJupiterQuotePrices() {
 const TITAN_REST_BASE = 'https://partners.api.titan.exchange/api/v1';
 const USDC_MINT_ADDR = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
+// ============================================================================
+// PYTH NETWORK SSE — Real-time sub-second streaming via Hermes
+// Free, no API key, ~300ms update intervals from browser EventSource
+// ============================================================================
+const PYTH_HERMES = 'https://hermes.pyth.network/v2';
+const PYTH_FEED_IDS = {
+  SOL:   'ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d',
+  JUP:   '0a0408d619e9380abad35060f9192039ed5042fa6f82301d0e48bb52be830996',
+  BONK:  '72b021217ca3fe68922a19aaf990109cb9d84e9ad004b4d2025ad6f529314419',
+  WIF:   '4ca4beeca86f0d164160323817a4e42b10010a724c2217c6ee41b54cd4cc61fc',
+  RAY:   '91568baa8beb53db23eb3fb7f22c6e8bd303d103919e19733f2bb642d3e7987a',
+  JTO:   'b43660a5f790c69354b0729a5ef9d50d68f1df92107540210b9cccba1f947cc2',
+  PYTH:  '0bbf28e9a841a1cc788f6a361b17ca072d0ea3098a1e5df1c3922d06719579ff',
+  HNT:   '649fdd7ec08e8e2a20f425729854e90293dcbe2376abc47197a14da6ff339756',
+  ORCA:  '37505261e557e251290b8c8899453064e8d760ed5c65a779726f2490980da74c',
+  MNDE:  '5765ab641e4fb9a2baf854bb89e2e68326c99ab1e0dc68b1e4e68e09a44acc5d',
+  TNSR:  '05ecd4597cd48fe13d6cc3596c62af4f9675aee06e2e0b94c06d8bee2b659e05',
+  MSOL:  'c2289a6a43d2ce91c6f55caec370f4acc38a2ed477f58813334c6d03749ff2a4',
+  JITOSOL:'67be9f519b95cf24338801051f9a808eff0a578ccb388db73b7f6fe1de019ffb',
+  BSOL:  '89875379e70f8fbadc17aef315adf3a8d5d160b811435537e03c97e8aac97d9c',
+  INF:   'f51570985c642c49c2d6e50156390fdba1fdd1195a0cf7e315e2e9a03e7a249e',
+  POPCAT:'b9312a7ee446aa8fba5e8e868dbc03b8e439508fa8a89fb272e6e2e53ecc7700',
+  MEW:   '6d0e3de440605eeb6e7f7b4a260c40e1cd30ae18dc0da83e31a4a2795e94e5e5',
+  TRUMP: '879551021853eec7a7dc827578e8e69da7e4fa8148339aa0d3d5296405be4b1a',
+  FARTCOIN:'58cd29ef0e714c5affc44f269b2c1899a52da4169d7acc147b9da692e6953608',
+  WEN:   '5169491cd7e2a44c98353b779d5eb612e4ac32e073f5cc534303d86307c2f1bc',
+  SAMO:  '00c2c80e477b3106fb7f849aca1777c03b8bbd19aa0ef65951ec14e0c0e1fd08',
+  MYRO:  '6c19a9df349e8951d6bbae02f11ce54a025cd549b482403a0d897bb0bdbfd424',
+  W:     'eff7446475e218517566ea99e72a4abec2e1bd8498b43b7d8331e29dcb059389',
+  MOBILE:'ff4c53361e36a9b837433c87d290c229e1f01aec5ef98d9f3f70953a20a629ce',
+  ATLAS: '681e0eb7acf9a2a3384927684d932560fb6f67c6beb21baa0f110e993b265386',
+  USDT:  '2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b',
+  WBTC:  'c9d8b075a5c69303365ae23633d4e085199bf5c520a3b90fed1322a0342ffc33',
+  WETH:  '9d4294bbcd1174d6f2003ec365831e64cc31d9f6f15a2b85399db8d5000960f6',
+  CBBTC: '2ef92b21a7db36bbb46bddcc88db7b7a3b0f1b5c33f38a7db4de0d3b3a96e60c',
+  AI16Z: '2551eca7784671173def2c41e6f3e51e11cd87494863f1d208fdd8c64a1f85ae',
+  GRIFFAIN:'159b86e6ca1a2a6bd613953d1cd46008bd1200284bebc3e4c7cc36c3aa3edda9',
+  VIRTUAL:'8132e3eb1dac3e56939a16ff83848d194345f6688bff97eb1c8bd462d558802b',
+  ZEREBRO:'3dd13bf483f196da0429b354db1fa4802ff6a5c19c559a6abdd9a92707f426dc',
+  BTC:   'e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
+  ETH:   'ff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace',
+};
+// Reverse lookup: feedId → ticker
+const PYTH_ID_TO_TICKER = {};
+Object.entries(PYTH_FEED_IDS).forEach(([ticker, id]) => { PYTH_ID_TO_TICKER[id] = ticker; });
+
+let pythSSE = null;          // EventSource instance
+let pythConnected = false;   // SSE stream open?
+let pythLastUpdate = 0;      // last price update timestamp
+let pythUpdateCount = 0;     // total updates received
+let pythReconnects = 0;      // reconnection counter
+
+function connectPythSSE() {
+  if (pythSSE) { try { pythSSE.close(); } catch(e) {} }
+  pythConnected = false;
+
+  // Build SSE URL with all feed IDs
+  const ids = Object.values(PYTH_FEED_IDS);
+  const params = ids.map(id => 'ids[]=0x' + id).join('&');
+  const url = PYTH_HERMES + '/updates/price/stream?' + params + '&parsed=true';
+
+  console.log(`[PYTH] Connecting SSE stream (${ids.length} feeds)...`);
+  pythSSE = new EventSource(url);
+
+  pythSSE.onopen = () => {
+    pythConnected = true;
+    pythReconnects = 0;
+    console.log('[PYTH] SSE stream connected — real-time prices active');
+  };
+
+  pythSSE.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (!data.parsed || !data.parsed.length) return;
+
+      let anyUpdate = false;
+      data.parsed.forEach(feed => {
+        const ticker = PYTH_ID_TO_TICKER[feed.id];
+        if (!ticker) return;
+
+        const rawPrice = parseInt(feed.price.price);
+        const expo = feed.price.expo;
+        const price = rawPrice * Math.pow(10, expo);
+        if (isNaN(price) || price <= 0) return;
+
+        // Find token and update
+        const tokenIdx = tokens.findIndex(t => t.ticker === ticker);
+        if (tokenIdx === -1) return;
+
+        if (!lastPrices[ticker]) lastPrices[ticker] = price;
+        const sessionChange = ((price - lastPrices[ticker]) / lastPrices[ticker]) * 100;
+        tokens[tokenIdx].price = price;
+        tokens[tokenIdx].change = sessionChange;
+        anyUpdate = true;
+      });
+
+      if (anyUpdate) {
+        pythLastUpdate = Date.now();
+        pythUpdateCount++;
+        priceSource = 'pyth';
+        // Throttle UI refreshes to max ~4/sec to avoid DOM thrash
+        if (!connectPythSSE._lastRefresh || Date.now() - connectPythSSE._lastRefresh > 250) {
+          connectPythSSE._lastRefresh = Date.now();
+          refreshPriceUI();
+        }
+      }
+    } catch(e) {
+      // Silently ignore parse errors on individual messages
+    }
+  };
+
+  pythSSE.onerror = () => {
+    pythConnected = false;
+    console.warn('[PYTH] SSE stream error — will auto-reconnect');
+    try { pythSSE.close(); } catch(e) {}
+    pythSSE = null;
+    // Exponential backoff reconnect: 2s, 4s, 8s, max 30s
+    pythReconnects++;
+    const delay = Math.min(2000 * Math.pow(2, pythReconnects - 1), 30000);
+    console.log(`[PYTH] Reconnecting in ${(delay/1000).toFixed(0)}s (attempt ${pythReconnects})`);
+    setTimeout(connectPythSSE, delay);
+  };
+}
+
+// Pyth bulk poll fallback (if SSE fails, poll /latest every 2s)
+async function fetchPythPrices() {
+  const ids = Object.values(PYTH_FEED_IDS);
+  const params = ids.map(id => 'ids[]=0x' + id).join('&');
+  const url = PYTH_HERMES + '/updates/price/latest?' + params + '&parsed=true';
+  try {
+    const ctrl = new AbortController();
+    const tm = setTimeout(() => ctrl.abort(), 5000);
+    const resp = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tm);
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    if (!data.parsed) return false;
+
+    let updated = false;
+    data.parsed.forEach(feed => {
+      const ticker = PYTH_ID_TO_TICKER[feed.id];
+      if (!ticker) return;
+      const price = parseInt(feed.price.price) * Math.pow(10, feed.price.expo);
+      if (isNaN(price) || price <= 0) return;
+      const tokenIdx = tokens.findIndex(t => t.ticker === ticker);
+      if (tokenIdx === -1) return;
+      if (!lastPrices[ticker]) lastPrices[ticker] = price;
+      tokens[tokenIdx].price = price;
+      tokens[tokenIdx].change = ((price - lastPrices[ticker]) / lastPrices[ticker]) * 100;
+      updated = true;
+    });
+    return updated;
+  } catch(e) { return false; }
+}
+
 // Feed registry
 const priceFeeds = {
+  pyth: {
+    name: 'Pyth SSE', label: 'pyth',
+    latency: Infinity, failures: 0, healthy: false,
+    fetch: async () => {
+      // If SSE is streaming, it's already updating prices
+      if (pythConnected && pythLastUpdate && (Date.now() - pythLastUpdate < 10000)) {
+        return true;
+      }
+      // Fallback: try polling
+      return await fetchPythPrices();
+    }
+  },
   titan: {
     name: 'Titan WS', label: 'titan',
     latency: Infinity, failures: 0, healthy: false,
     fetch: async () => {
-      // Titan REST has no CORS headers — skip it in browser context.
-      // Titan WS price data flows through the WebSocket stream handler
-      // (processSwapQuotes) and updates prices directly.
-      // Mark as healthy only if WS is connected and has delivered quotes.
       if (titanConnected && titanLastQuote) {
-        return true; // WS is feeding prices already
+        return true;
       }
       return false;
     }
@@ -4158,7 +4321,9 @@ function refreshPriceUI() {
     const dir = t.price > prevP ? 'up' : t.price < prevP ? 'down' : 'flat';
     priceEl._lastPrice = t.price;
     priceEl.style.transition = 'color 0.15s';
-    if (priceSource === 'titan') {
+    if (priceSource === 'pyth') {
+      priceEl.style.color = dir === 'up' ? '#e879f9' : dir === 'down' ? '#a855f7' : '#e040fb';
+    } else if (priceSource === 'titan') {
       priceEl.style.color = dir === 'up' ? '#ffbb33' : dir === 'down' ? '#ff6600' : '#ff981f';
     } else {
       priceEl.style.color = dir === 'up' ? '#00ff88' : dir === 'down' ? '#ff4444' : '';
@@ -4184,7 +4349,10 @@ function refreshPriceUI() {
   // Update status indicator
   const dot = document.getElementById('geTitanDot');
   const label = document.getElementById('geTitanLabel');
-  if (priceSource === 'titan') {
+  if (priceSource === 'pyth') {
+    if (dot) dot.className = 'titan-dot connected';
+    if (label) { label.textContent = 'Pyth Live'; label.style.color = '#e040fb'; }
+  } else if (priceSource === 'titan') {
     if (dot) dot.className = 'titan-dot connected';
     if (label) { label.textContent = 'Titan Live'; label.style.color = '#ff981f'; }
   } else if (priceSource === 'jupiter') {
@@ -4198,7 +4366,11 @@ function refreshPriceUI() {
     if (label) { label.textContent = 'Loading...'; label.style.color = '#ffff00'; }
   }
 
-  console.log(`[LIVE] Prices updated via ${priceSource}`);
+  // Log price source (throttled for Pyth SSE to avoid console flood)
+  if (priceSource !== 'pyth' || !refreshPriceUI._lastLog || Date.now() - refreshPriceUI._lastLog > 10000) {
+    console.log(`[LIVE] Prices updated via ${priceSource}${priceSource === 'pyth' ? ' (' + pythUpdateCount + ' ticks)' : ''}`);
+    refreshPriceUI._lastLog = Date.now();
+  }
 }
 
 // simulatePriceMovement — REMOVED: all prices now come from live API feeds only
@@ -4226,47 +4398,41 @@ function startLivePrices() {
   updateChart();
   buildTicker();
 
-  // STEP 1: Race all feeds in parallel, lock onto fastest
+  // ── PRIMARY: Pyth Network SSE (real-time, sub-second) ──────
+  // Connect immediately — SSE handles its own reconnection
+  connectPythSSE();
+
+  // ── SECONDARY: CoinGecko/Jupiter adaptive polling (fallback) ──
+  // Only polls when Pyth SSE is NOT delivering updates
+  function fallbackPollLoop() {
+    // If Pyth is streaming fresh data (within last 10s), skip REST polling
+    if (pythConnected && pythLastUpdate && (Date.now() - pythLastUpdate < 10000)) {
+      setTimeout(fallbackPollLoop, 5000); // check again in 5s
+      return;
+    }
+    // Pyth is down — use REST fallback
+    fetchLivePrices();
+    const key = (activeFeed === 'coingecko') ? 'cgBulk' : 'jupFull';
+    setTimeout(fallbackPollLoop, _rateState[key].interval);
+  }
+  // Start fallback polling after 3s (give Pyth SSE time to connect first)
+  setTimeout(fallbackPollLoop, 3000);
+
+  // ── BENCHMARK: Initial feed benchmark (sets activeFeed for fallback) ──
   benchmarkAllFeeds().then(winner => {
-    console.log(`[LIVE] Locked → ${winner ? priceFeeds[winner].name : 'waiting for API'}`);
-    if (winner) refreshPriceUI();
+    console.log(`[LIVE] Fallback locked → ${winner ? priceFeeds[winner].name : 'waiting for API'}`);
+    // Only refresh if Pyth isn't already streaming
+    if (winner && !pythConnected) refreshPriceUI();
   }).catch(() => {});
 
-  // Background Titan WS attempt (opportunistic)
+  // ── OPTIONAL: Titan WS (opportunistic, low priority) ──
   setTimeout(() => {
     if (typeof connectTitan === 'function') {
       try { connectTitan(); } catch(e) {}
     }
-  }, 5000);
+  }, 8000);
 
-  // ── ADAPTIVE POLLING LOOPS ──────────────────────────────────
-  // Each loop uses setTimeout chains so interval adapts per _rateState.
-
-  // LOOP 1: Full all-token fetch (CoinGecko or Jupiter depending on activeFeed)
-  // Starts at 6s, backs off to 30s on rate limit, speeds up to 4s on success
-  function fullFetchLoop() {
-    fetchLivePrices();
-    const key = (activeFeed === 'coingecko') ? 'cgBulk' : 'jupFull';
-    setTimeout(fullFetchLoop, _rateState[key].interval);
-  }
-  setTimeout(fullFetchLoop, 1000); // first full fetch 1s after benchmark
-
-  // LOOP 2: Fast selected-token Jupiter quote (just the coin you're viewing)
-  // Starts at 1.5s, backs off to 10s, speeds up to 1s
-  function fastTokenLoop() {
-    if (!_priceFetchInFlight) {
-      fetchSelectedTokenPrice().then(ok => {
-        if (ok) {
-          priceSource = (activeFeed && priceFeeds[activeFeed]) ? priceFeeds[activeFeed].label : 'jupiter';
-          refreshPriceUI();
-        }
-      }).catch(() => {});
-    }
-    setTimeout(fastTokenLoop, _rateState.jupFast.interval);
-  }
-  setTimeout(fastTokenLoop, 2000); // start after first full fetch
-
-  // LOOP 3: Chart candle tick — uses cached prices, no API calls (can be fast)
+  // ── CHART CANDLE TICK — uses cached prices, no API calls (fast) ──
   setInterval(() => {
     if (tokens[selectedToken]) {
       const tk = tokens[selectedToken];
@@ -4279,15 +4445,13 @@ function startLivePrices() {
     }
   }, 250);
 
-  // LOOP 4: Ticker + top movers refresh (no API calls)
+  // ── TICKER + TOP MOVERS — no API calls ──
   setInterval(() => {
     updateTickerPrices();
     renderTopMovers();
   }, 2000);
 
-  console.log('[LIVE] Adaptive price engine started — jupFast:' +
-    _rateState.jupFast.interval + 'ms, cgBulk:' + _rateState.cgBulk.interval +
-    'ms, jupFull:' + _rateState.jupFull.interval + 'ms');
+  console.log('[LIVE] Price engine started — Pyth SSE primary, REST fallback adaptive');
 }
 
 // ===== INIT =====
