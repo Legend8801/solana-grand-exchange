@@ -3982,82 +3982,104 @@ const PYTH_FEED_IDS = {
 const PYTH_ID_TO_TICKER = {};
 Object.entries(PYTH_FEED_IDS).forEach(([ticker, id]) => { PYTH_ID_TO_TICKER[id] = ticker; });
 
-let pythSSE = null;          // EventSource instance
-let pythConnected = false;   // SSE stream open?
+let pythStreams = [];         // Array of EventSource instances (sharded)
+let pythConnected = false;   // At least one SSE stream open?
 let pythLastUpdate = 0;      // last price update timestamp
 let pythUpdateCount = 0;     // total updates received
 let pythReconnects = 0;      // reconnection counter
+let _pythLastRefresh = 0;    // UI refresh throttle
+
+const PYTH_SHARD_SIZE = 9;   // Max feeds per SSE stream (Hermes limit)
+
+// Shared message handler for all Pyth SSE shards
+function _pythOnMessage(event) {
+  try {
+    const data = JSON.parse(event.data);
+    if (!data.parsed || !data.parsed.length) return;
+
+    let anyUpdate = false;
+    data.parsed.forEach(feed => {
+      const ticker = PYTH_ID_TO_TICKER[feed.id];
+      if (!ticker) return;
+
+      const rawPrice = parseInt(feed.price.price);
+      const expo = feed.price.expo;
+      const price = rawPrice * Math.pow(10, expo);
+      if (isNaN(price) || price <= 0) return;
+
+      const tokenIdx = tokens.findIndex(t => t.ticker === ticker);
+      if (tokenIdx === -1) return;
+
+      if (!lastPrices[ticker]) lastPrices[ticker] = price;
+      const sessionChange = ((price - lastPrices[ticker]) / lastPrices[ticker]) * 100;
+      tokens[tokenIdx].price = price;
+      tokens[tokenIdx].change = sessionChange;
+      anyUpdate = true;
+    });
+
+    if (anyUpdate) {
+      pythLastUpdate = Date.now();
+      pythUpdateCount++;
+      priceSource = 'pyth';
+      // Throttle UI refreshes to max ~4/sec to avoid DOM thrash
+      if (Date.now() - _pythLastRefresh > 250) {
+        _pythLastRefresh = Date.now();
+        refreshPriceUI();
+      }
+    }
+  } catch(e) {}
+}
 
 function connectPythSSE() {
-  if (pythSSE) { try { pythSSE.close(); } catch(e) {} }
+  // Close any existing streams
+  pythStreams.forEach(es => { try { es.close(); } catch(e) {} });
+  pythStreams = [];
   pythConnected = false;
 
-  // Build SSE URL with all feed IDs
-  const ids = Object.values(PYTH_FEED_IDS);
-  const params = ids.map(id => 'ids[]=0x' + id).join('&');
-  const url = PYTH_HERMES + '/updates/price/stream?' + params + '&parsed=true';
+  // Shard feed IDs into groups of PYTH_SHARD_SIZE
+  const allIds = Object.values(PYTH_FEED_IDS);
+  const shards = [];
+  for (let i = 0; i < allIds.length; i += PYTH_SHARD_SIZE) {
+    shards.push(allIds.slice(i, i + PYTH_SHARD_SIZE));
+  }
 
-  console.log(`[PYTH] Connecting SSE stream (${ids.length} feeds)...`);
-  pythSSE = new EventSource(url);
+  console.log(`[PYTH] Connecting ${shards.length} SSE shards (${allIds.length} feeds, max ${PYTH_SHARD_SIZE}/stream)...`);
 
-  pythSSE.onopen = () => {
-    pythConnected = true;
-    pythReconnects = 0;
-    console.log('[PYTH] SSE stream connected — real-time prices active');
-  };
+  let openCount = 0;
+  shards.forEach((shard, idx) => {
+    const params = shard.map(id => 'ids[]=0x' + id).join('&');
+    const url = PYTH_HERMES + '/updates/price/stream?' + params + '&parsed=true';
+    const es = new EventSource(url);
 
-  pythSSE.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      if (!data.parsed || !data.parsed.length) return;
-
-      let anyUpdate = false;
-      data.parsed.forEach(feed => {
-        const ticker = PYTH_ID_TO_TICKER[feed.id];
-        if (!ticker) return;
-
-        const rawPrice = parseInt(feed.price.price);
-        const expo = feed.price.expo;
-        const price = rawPrice * Math.pow(10, expo);
-        if (isNaN(price) || price <= 0) return;
-
-        // Find token and update
-        const tokenIdx = tokens.findIndex(t => t.ticker === ticker);
-        if (tokenIdx === -1) return;
-
-        if (!lastPrices[ticker]) lastPrices[ticker] = price;
-        const sessionChange = ((price - lastPrices[ticker]) / lastPrices[ticker]) * 100;
-        tokens[tokenIdx].price = price;
-        tokens[tokenIdx].change = sessionChange;
-        anyUpdate = true;
-      });
-
-      if (anyUpdate) {
-        pythLastUpdate = Date.now();
-        pythUpdateCount++;
-        priceSource = 'pyth';
-        // Throttle UI refreshes to max ~4/sec to avoid DOM thrash
-        if (!connectPythSSE._lastRefresh || Date.now() - connectPythSSE._lastRefresh > 250) {
-          connectPythSSE._lastRefresh = Date.now();
-          refreshPriceUI();
-        }
+    es.onopen = () => {
+      openCount++;
+      if (openCount === 1) {
+        pythConnected = true;
+        pythReconnects = 0;
+        console.log(`[PYTH] Shard ${idx} connected — real-time prices active`);
       }
-    } catch(e) {
-      // Silently ignore parse errors on individual messages
-    }
-  };
+    };
 
-  pythSSE.onerror = () => {
-    pythConnected = false;
-    console.warn('[PYTH] SSE stream error — will auto-reconnect');
-    try { pythSSE.close(); } catch(e) {}
-    pythSSE = null;
-    // Exponential backoff reconnect: 2s, 4s, 8s, max 30s
-    pythReconnects++;
-    const delay = Math.min(2000 * Math.pow(2, pythReconnects - 1), 30000);
-    console.log(`[PYTH] Reconnecting in ${(delay/1000).toFixed(0)}s (attempt ${pythReconnects})`);
-    setTimeout(connectPythSSE, delay);
-  };
+    es.onmessage = _pythOnMessage;
+
+    es.onerror = () => {
+      console.warn(`[PYTH] Shard ${idx} error`);
+      // Check if ALL shards have failed
+      const allDead = pythStreams.every(s => s.readyState === 2); // CLOSED
+      if (allDead) {
+        pythConnected = false;
+        console.warn('[PYTH] All SSE shards failed — reconnecting...');
+        pythStreams.forEach(s => { try { s.close(); } catch(e) {} });
+        pythStreams = [];
+        pythReconnects++;
+        const delay = Math.min(2000 * Math.pow(2, pythReconnects - 1), 30000);
+        console.log(`[PYTH] Reconnecting in ${(delay/1000).toFixed(0)}s (attempt ${pythReconnects})`);
+        setTimeout(connectPythSSE, delay);
+      }
+    };
+
+    pythStreams.push(es);
+  });
 }
 
 // Pyth bulk poll fallback (if SSE fails, poll /latest every 2s)
@@ -4097,11 +4119,11 @@ const priceFeeds = {
     name: 'Pyth SSE', label: 'pyth',
     latency: Infinity, failures: 0, healthy: false,
     fetch: async () => {
-      // If SSE is streaming, it's already updating prices
+      // If any SSE shard is streaming, it's already updating prices
       if (pythConnected && pythLastUpdate && (Date.now() - pythLastUpdate < 10000)) {
         return true;
       }
-      // Fallback: try polling
+      // Fallback: try polling (bulk endpoint handles all feeds in one request)
       return await fetchPythPrices();
     }
   },
